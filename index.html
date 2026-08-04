@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Brunei Travel Itinerary & Map App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Instrument Sans', 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Mobile Container Simulation */
+        .app-frame {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 932px;
+            background-color: #C2E6DB;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 640px) {
+            .app-frame {
+                height: 900px;
+                border-radius: 40px;
+                border: 8px solid #2a2a2a;
+            }
+        }
+
+        /* Custom Leaflet Marker Styling */
+        .custom-map-pin {
+            background-color: #ED9D04;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .custom-map-pin.active {
+            background-color: #40240B;
+            transform: scale(1.15);
+        }
+
+        /* Hide scrollbars for slick look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Glassmorphic Navigation Item */
+        .nav-active-bg {
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+        }
+
+        .bottom-sheet {
+            background: #F5F5F5;
+            box-shadow: 0px -5px 15px rgba(0, 0, 0, 0.12);
+            border-radius: 28px 28px 0 0;
+        }
+
+        /* Timeline Connector */
+        .timeline-line {
+            width: 3px;
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: 20px;
+            background-color: #E8E6E6;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Mobile Frame Container -->
+    <div class="app-frame relative select-none">
+        
+        <!-- Header Bar -->
+        <div class="w-full px-6 pt-7 pb-2 flex justify-between items-center z-10">
+            <button class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-all">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+            </button>
+            <h1 class="text-lg font-medium text-black">Itinerary</h1>
+            <button id="btn-recenter" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-all" title="브루나이 한눈에 보기">
+                <i class="fa-solid fa-location-crosshairs text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Section 1: My Plan Map Area -->
+        <div class="px-6 pt-1 pb-3 z-10">
+            <div class="flex justify-between items-baseline mb-2">
+                <h2 class="text-2xl font-bold text-black tracking-tight">My Plan</h2>
+                <span class="text-xs font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-1 rounded-full shadow-sm">
+                    <i class="fa-solid fa-compass mr-1"></i>Bandar Seri Begawan
+                </span>
+            </div>
+            
+            <!-- Map Container -->
+            <div class="relative w-full h-[285px] rounded-2xl overflow-hidden shadow-md border border-white/40">
+                <div id="brunei-map" class="w-full h-full z-0"></div>
+                <!-- Map Quick Action Overlay -->
+                <div class="absolute bottom-3 right-3 z-[400] flex flex-col gap-2">
+                    <button id="btn-toggle-route" class="bg-white/90 backdrop-blur text-xs font-semibold text-gray-800 px-3 py-1.5 rounded-lg shadow border border-gray-200 flex items-center gap-1.5 hover:bg-white">
+                        <i class="fa-solid fa-route text-amber-500"></i> 경로 보기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Today's Plan Bottom Sheet -->
+        <div class="bottom-sheet flex-1 w-full mt-1 flex flex-col z-20 overflow-hidden relative">
+            
+            <!-- Handle Indicator -->
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-1"></div>
+
+            <!-- Title & Filter -->
+            <div class="px-6 py-2 flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-black">Today’s Plan</h3>
+                <button id="btn-open-filter" class="w-9 h-9 flex items-center justify-center text-gray-700 bg-white shadow-sm border border-gray-200 rounded-xl hover:bg-gray-50">
+                    <i class="fa-solid fa-sliders text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Horizontal Date Selector -->
+            <div class="px-5 py-2">
+                <div class="flex justify-between items-center gap-1 overflow-x-auto no-scrollbar py-1" id="date-selector-container">
+                    <!-- Date Cards populated by JS -->
+                </div>
+            </div>
+
+            <!-- Day Selector Tabs & Divider -->
+            <div class="px-6 mt-1 mb-2">
+                <div class="flex gap-6 border-b border-gray-200 pb-2 text-sm font-medium" id="day-tabs">
+                    <button class="relative text-black font-semibold pb-1 active-day-tab" data-day="1">
+                        Day 1
+                        <span class="block text-[10px] text-gray-500 font-normal">8 August, Wednesday</span>
+                        <div class="absolute bottom-[-9px] left-0 right-0 h-[2.5px] bg-[#98C2B5] rounded-full"></div>
+                    </button>
+                    <button class="relative text-gray-400 pb-1" data-day="2">
+                        Day 2
+                        <span class="block text-[10px] text-gray-400 font-normal">9 August, Thursday</span>
+                    </button>
+                    <button class="relative text-gray-400 pb-1" data-day="3">
+                        Day 3
+                        <span class="block text-[10px] text-gray-400 font-normal">10 August, Friday</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Timeline List Container -->
+            <div class="flex-1 px-6 overflow-y-auto no-scrollbar pb-24 relative" id="timeline-container">
+                <!-- Timeline Items generated by JavaScript -->
+            </div>
+
+            <!-- Floating Add Plan Button -->
+            <button id="btn-add-plan" class="absolute right-6 bottom-20 w-12 h-12 bg-[#98C2B5] hover:bg-[#83b0a2] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-30">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+
+            <!-- Bottom Floating Navigation Bar -->
+            <div class="absolute bottom-4 left-6 right-6 h-[60px] bg-[#40240B] rounded-full shadow-xl flex items-center justify-around px-4 z-40">
+                <button class="w-11 h-11 flex items-center justify-center text-[#F3EBE5] opacity-70 hover:opacity-100 transition-opacity">
+                    <i class="fa-solid fa-house text-lg"></i>
+                </button>
+                <button class="w-12 h-12 flex items-center justify-center text-white rounded-2xl nav-active-bg transition-all">
+                    <i class="fa-solid fa-calendar-days text-lg"></i>
+                </button>
+                <button class="w-11 h-11 flex items-center justify-center text-[#F3EBE5] opacity-70 hover:opacity-100 transition-opacity relative">
+                    <i class="fa-solid fa-comment-dots text-lg"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-amber-400 rounded-full"></span>
+                </button>
+                <button class="w-11 h-11 flex items-center justify-center text-[#F3EBE5] opacity-70 hover:opacity-100 transition-opacity">
+                    <i class="fa-solid fa-user text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Destination Modal -->
+        <div id="add-modal" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform translate-y-10 transition-transform duration-300" id="modal-card">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <h3 class="text-xl font-bold text-gray-900"><i class="fa-solid fa-location-dot text-[#98C2B5] mr-2"></i>일정 추가하기</h3>
+                    <button id="btn-close-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="add-plan-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">방문 시간</label>
+                        <input type="time" id="input-time" value="11:30" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">브루나이 추천 명소 선택 또는 입력</label>
+                        <select id="select-preset-location" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm bg-white mb-2">
+                            <option value="">-- 브루나이 명소 프리셋 선택 --</option>
+                            <option value="Omar Ali Saifuddien Mosque|4.8894|114.9392">오마르 알리 사이푸딘 모스크 (황금 모스크)</option>
+                            <option value="Jame' 'Asr Hassanil Bolkiah|4.9081|114.9228">자메 아스르 하사날 볼키아 모스크</option>
+                            <option value="Kampong Ayer|4.8833|114.9433">캄퐁 아에르 (수상 가옥 마을)</option>
+                            <option value="The Empire Brunei|4.9667|114.8522">엠파이어 브루나이 리조트</option>
+                            <option value="Gadong Night Market|4.9128|114.9256">가동 야시장 (Gadong Night Market)</option>
+                        </select>
+                        <input type="text" id="input-title" placeholder="장소 이름을 직접 입력하세요" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">위도 (Lat)</label>
+                            <input type="number" step="any" id="input-lat" value="4.8894" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">경도 (Lng)</label>
+                            <input type="number" step="any" id="input-lng" value="114.9392" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none bg-gray-50">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">메모 / 액티비티</label>
+                        <textarea id="input-notes" rows="2" placeholder="예: 사진 촬영하기, 시그니처 메뉴 맛보기" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#98C2B5] focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="pt-2 flex gap-2">
+                        <button type="button" id="btn-cancel-modal" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm">취소</button>
+                        <button type="submit" class="flex-1 py-3 bg-[#98C2B5] hover:bg-[#81aba0] text-white font-semibold rounded-xl text-sm shadow">플랜 등록하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Initial Itinerary Data for Brunei
+        const itineraryState = {
+            activeDay: 1,
+            selectedDate: '2026-08-08',
+            showRoute: true,
+            days: {
+                1: {
+                    date: '8 August, Wednesday',
+                    dayNum: 8,
+                    items: [
+                        {
+                            id: 'item-1',
+                            time: '08:30',
+                            title: "Mr Baker's Café",
+                            notes: "Breakfast & Fresh Coffee in Gadong",
+                            lat: 4.9025,
+                            lng: 114.9298,
+                            status: 'completed'
+                        },
+                        {
+                            id: 'item-2',
+                            time: '10:00',
+                            title: 'Tasek Lama',
+                            notes: 'Hike for 20 minutes\nTake photo of waterfall',
+                            lat: 4.8988,
+                            lng: 114.9413,
+                            status: 'active'
+                        },
+                        {
+                            id: 'item-3',
+                            time: '13:00',
+                            title: 'Aminah Arif',
+                            notes: 'Famous local Ambuyat cuisine lunch',
+                            lat: 4.9008,
+                            lng: 114.9312,
+                            status: 'upcoming'
+                        },
+                        {
+                            id: 'item-4',
+                            time: '16:30',
+                            title: 'Yayasan',
+                            notes: 'Shopping & Sultan Mosque view photo spot',
+                            lat: 4.8878,
+                            lng: 114.9392,
+                            status: 'upcoming'
+                        }
+                    ]
+                },
+                2: {
+                    date: '9 August, Thursday',
+                    dayNum: 9,
+                    items: [
+                        {
+                            id: 'item-5',
+                            time: '09:30',
+                            title: "Omar Ali Saifuddien Mosque",
+                            notes: "Visit Iconic Golden Mosque & Lagoon",
+                            lat: 4.8894,
+                            lng: 114.9392,
+                            status: 'upcoming'
+                        },
+                        {
+                            id: 'item-6',
+                            time: '12:00',
+                            title: "Kampong Ayer Water Village",
+                            notes: "Water taxi ride & local heritage tour",
+                            lat: 4.8833,
+                            lng: 114.9433,
+                            status: 'upcoming'
+                        },
+                        {
+                            id: 'item-7',
+                            time: '18:00',
+                            title: "Gadong Night Market",
+                            notes: "Taste local street food & 1 BND snacks",
+                            lat: 4.9128,
+                            lng: 114.9256,
+                            status: 'upcoming'
+                        }
+                    ]
+                },
+                3: {
+                    date: '10 August, Friday',
+                    dayNum: 10,
+                    items: [
+                        {
+                            id: 'item-8',
+                            time: '14:00',
+                            title: "The Empire Brunei",
+                            notes: "Luxury 7-star resort afternoon tea & sunset",
+                            lat: 4.9667,
+                            lng: 114.8522,
+                            status: 'upcoming'
+                        }
+                    ]
+                }
+            }
+        };
+
+        let map = null;
+        let mapMarkers = [];
+        let routePolyline = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            renderDateSelector();
+            renderTimeline();
+            setupEventListeners();
+        });
+
+        // Initialize Leaflet Map
+        function initMap() {
+            // Centered on Bandar Seri Begawan
+            map = L.map('brunei-map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([4.8988, 114.9413], 13);
+
+            // Add clean map tiles (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            updateMapMarkers();
+        }
+
+        // Update Map Markers and Route Line based on active day
+        function updateMapMarkers() {
+            if (!map) return;
+
+            // Clear previous markers & polyline
+            mapMarkers.forEach(m => map.removeLayer(m));
+            mapMarkers = [];
+            if (routePolyline) {
+                map.removeLayer(routePolyline);
+                routePolyline = null;
+            }
+
+            const currentDayData = itineraryState.days[itineraryState.activeDay];
+            if (!currentDayData || currentDayData.items.length === 0) return;
+
+            const latLngs = [];
+
+            currentDayData.items.forEach((item, index) => {
+                const isSelected = item.status === 'active';
+                
+                // Custom DivIcon for numbered pins
+                const pinIcon = L.divIcon({
+                    className: 'custom-pin-wrapper',
+                    html: `<div class="custom-map-pin ${isSelected ? 'active' : ''}">${index + 1}</div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([item.lat, item.lng], { icon: pinIcon }).addTo(map);
+                
+                // Popup info
+                marker.bindPopup(`
+                    <div style="font-family: 'Instrument Sans', sans-serif;">
+                        <div style="font-size:10px; color:#888; font-weight:bold;">${item.time}</div>
+                        <div style="font-size:13px; font-weight:bold; color:#111;">${item.title}</div>
+                        <div style="font-size:11px; color:#555;">${item.notes}</div>
+                    </div>
+                `);
+
+                // Click marker to focus in timeline
+                marker.on('click', () => {
+                    highlightTimelineItem(item.id);
+                });
+
+                mapMarkers.push(marker);
+                latLngs.push([item.lat, item.lng]);
+            });
+
+            // Draw route line
+            if (itineraryState.showRoute && latLngs.length > 1) {
+                routePolyline = L.polyline(latLngs, {
+                    color: '#ED9D04',
+                    weight: 3.5,
+                    dashArray: '6, 8',
+                    opacity: 0.85
+                }).addTo(map);
+            }
+
+            // Fit map bounds to show all pins for today
+            if (latLngs.length > 0) {
+                const bounds = L.latLngBounds(latLngs);
+                map.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        // Render Calendar Days Horizontal Scroll Bar
+        function renderDateSelector() {
+            const container = document.getElementById('date-selector-container');
+            const dates = [
+                { day: 6, name: 'Monday', dateStr: '2026-08-06' },
+                { day: 7, name: 'Tuesday', dateStr: '2026-08-07' },
+                { day: 8, name: 'Wednesday', dateStr: '2026-08-08', dayNum: 1 },
+                { day: 9, name: 'Thursday', dateStr: '2026-08-09', dayNum: 2 },
+                { day: 10, name: 'Friday', dateStr: '2026-08-10', dayNum: 3 },
+                { day: 11, name: 'Saturday', dateStr: '2026-08-11' }
+            ];
+
+            container.innerHTML = dates.map(d => {
+                const isActive = d.day === 8; // Highlight August 8 as in design
+                const isDayTabAvailable = d.dayNum !== undefined;
+                
+                return `
+                    <div data-daynum="${d.dayNum || ''}" class="date-card cursor-pointer flex-shrink-0 w-[58px] h-[68px] rounded-xl border flex flex-col items-center justify-between p-1.5 transition-all ${
+                        isActive 
+                        ? 'bg-[#F7CD4F] border-[#FFC003] shadow-sm text-black font-bold' 
+                        : 'bg-[#E8E6E6] border-black/10 text-gray-700 hover:bg-gray-200'
+                    }">
+                        <span class="text-[8px] tracking-tight uppercase ${isActive ? 'font-semibold' : ''}">${d.name}</span>
+                        <span class="text-xl font-bold leading-none my-auto">${d.day}</span>
+                        <span class="text-[8px] tracking-tight">August</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Click listener for date cards
+            container.querySelectorAll('.date-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const dayNum = card.dataset.daynum;
+                    if (dayNum) {
+                        switchDay(parseInt(dayNum));
+                    }
+                });
+            });
+        }
+
+        // Render Timeline
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
+            const currentDayData = itineraryState.days[itineraryState.activeDay];
+
+            if (!currentDayData || currentDayData.items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fa-solid fa-map-location-dot text-4xl mb-2 text-gray-300"></i>
+                        <p class="text-sm">등록된 일정이 없습니다.</p>
+                        <p class="text-xs text-gray-400 mt-1">하단 + 버튼을 눌러 일정을 추가해보세요!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="relative pl-8 pt-2 pb-6 space-y-6">';
+            
+            // Vertical background line
+            html += `<div class="timeline-line"></div>`;
+
+            currentDayData.items.forEach((item, index) => {
+                const isActive = item.status === 'active';
+                const isCompleted = item.status === 'completed';
+
+                // Node Dot Color
+                let dotBg = 'bg-[#E8E6E6]';
+                if (isActive || isCompleted) {
+                    dotBg = 'bg-[#ED9D04]';
+                }
+
+                html += `
+                    <div id="${item.id}" class="relative group cursor-pointer transition-all" onclick="focusItem('${item.id}')">
+                        <!-- Node Dot -->
+                        <div class="absolute -left-8 top-1 w-3.5 h-3.5 rounded-full ${dotBg} border-2 border-white shadow-sm z-10 transition-transform group-hover:scale-125"></div>
+                        
+                        <!-- Next Coming up indicator badge if active -->
+                        ${isActive ? `<div class="text-xs text-[#706D6D] font-medium mb-1">Next coming up</div>` : ''}
+
+                        <!-- Content Card -->
+                        <div class="rounded-xl p-3 border transition-all ${
+                            isActive 
+                            ? 'bg-white shadow-md border-amber-300/80 ring-1 ring-amber-200' 
+                            : 'bg-transparent border-transparent hover:bg-white/60'
+                        }">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="text-sm font-semibold text-black leading-tight flex items-center gap-2">
+                                        <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">${item.time}</span>
+                                        ${item.title}
+                                    </div>
+                                    <div class="text-xs text-[#706D6D] mt-1 whitespace-pre-line leading-relaxed">${item.notes}</div>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <button onclick="event.stopPropagation(); deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                    <div class="text-gray-400">
+                                        <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Switch Active Day Tab
+        function switchDay(dayNum) {
+            itineraryState.activeDay = dayNum;
+
+            // Update Tab UI
+            document.querySelectorAll('#day-tabs button').forEach(tab => {
+                const tabDay = parseInt(tab.dataset.day);
+                if (tabDay === dayNum) {
+                    tab.className = "relative text-black font-semibold pb-1 active-day-tab";
+                    tab.querySelector('span').className = "block text-[10px] text-gray-500 font-normal";
+                    if (!tab.querySelector('.absolute')) {
+                        tab.innerHTML += `<div class="absolute bottom-[-9px] left-0 right-0 h-[2.5px] bg-[#98C2B5] rounded-full"></div>`;
+                    }
+                } else {
+                    tab.className = "relative text-gray-400 pb-1";
+                    tab.querySelector('span').className = "block text-[10px] text-gray-400 font-normal";
+                    const indicator = tab.querySelector('.absolute');
+                    if (indicator) indicator.remove();
+                }
+            });
+
+            renderTimeline();
+            updateMapMarkers();
+        }
+
+        // Click item on list -> Focus Map Marker
+        window.focusItem = function(id) {
+            const currentItems = itineraryState.days[itineraryState.activeDay].items;
+            const targetItem = currentItems.find(i => i.id === id);
+            
+            if (targetItem && map) {
+                // Update active status
+                currentItems.forEach(i => i.status = (i.id === id ? 'active' : 'upcoming'));
+                renderTimeline();
+                updateMapMarkers();
+
+                map.flyTo([targetItem.lat, targetItem.lng], 15, {
+                    duration: 0.8
+                });
+            }
+        };
+
+        // Highlight item from map click
+        function highlightTimelineItem(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Delete Plan Item
+        window.deleteItem = function(id) {
+            const currentItems = itineraryState.days[itineraryState.activeDay].items;
+            const index = currentItems.findIndex(i => i.id === id);
+            if (index !== -1) {
+                currentItems.splice(index, 1);
+                renderTimeline();
+                updateMapMarkers();
+            }
+        };
+
+        // Event Listeners setup
+        function setupEventListeners() {
+            // Day tabs
+            document.querySelectorAll('#day-tabs button').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const dayNum = parseInt(tab.dataset.day);
+                    switchDay(dayNum);
+                });
+            });
+
+            // Route Toggle
+            document.getElementById('btn-toggle-route').addEventListener('click', () => {
+                itineraryState.showRoute = !itineraryState.showRoute;
+                updateMapMarkers();
+                const btn = document.getElementById('btn-toggle-route');
+                btn.innerHTML = itineraryState.showRoute 
+                    ? `<i class="fa-solid fa-route text-amber-500"></i> 경로 보기`
+                    : `<i class="fa-solid fa-eye-slash text-gray-400"></i> 경로 숨김`;
+            });
+
+            // Recenter Map
+            document.getElementById('btn-recenter').addEventListener('click', () => {
+                updateMapMarkers();
+            });
+
+            // Modal Controls
+            const modal = document.getElementById('add-modal');
+            const btnAdd = document.getElementById('btn-add-plan');
+            const btnClose = document.getElementById('btn-close-modal');
+            const btnCancel = document.getElementById('btn-cancel-modal');
+
+            const openModal = () => {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                document.getElementById('modal-card').classList.remove('translate-y-10');
+            };
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                document.getElementById('modal-card').classList.add('translate-y-10');
+            };
+
+            btnAdd.addEventListener('click', openModal);
+            btnClose.addEventListener('click', closeModal);
+            btnCancel.addEventListener('click', closeModal);
+
+            // Preset location dropdown change
+            document.getElementById('select-preset-location').addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val) {
+                    const [name, lat, lng] = val.split('|');
+                    document.getElementById('input-title').value = name;
+                    document.getElementById('input-lat').value = lat;
+                    document.getElementById('input-lng').value = lng;
+                }
+            });
+
+            // Form Submit - Add Plan
+            document.getElementById('add-plan-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const time = document.getElementById('input-time').value;
+                const title = document.getElementById('input-title').value;
+                const lat = parseFloat(document.getElementById('input-lat').value);
+                const lng = parseFloat(document.getElementById('input-lng').value);
+                const notes = document.getElementById('input-notes').value || 'New schedule';
+
+                const newItem = {
+                    id: 'item-' + Date.now(),
+                    time: time,
+                    title: title,
+                    notes: notes,
+                    lat: lat,
+                    lng: lng,
+                    status: 'upcoming'
+                };
+
+                itineraryState.days[itineraryState.activeDay].items.push(newItem);
+                
+                // Sort by time
+                itineraryState.days[itineraryState.activeDay].items.sort((a, b) => a.time.localeCompare(b.time));
+
+                renderTimeline();
+                updateMapMarkers();
+                closeModal();
+
+                // Reset form
+                document.getElementById('add-plan-form').reset();
+            });
+        }
+    </script>
+</body>
+</html>
