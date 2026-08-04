@@ -64,6 +64,11 @@
             margin-top: 8px;
         }
 
+        /* Hide Leaflet / OpenStreetMap attribution watermark */
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
         /* Custom Leaflet Numbered Pin */
         .custom-numbered-pin {
             background-color: #ED9D04;
@@ -244,7 +249,23 @@
                 <form id="add-plan-form" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Visit Time</label>
-                        <input type="time" id="input-time" value="11:30" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Hour</span>
+                                <select id="input-time-hour" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-semibold bg-white"></select>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Minute</span>
+                                <select id="input-time-minute" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-semibold bg-white"></select>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Period</span>
+                                <select id="input-time-ampm" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-bold bg-amber-50 border-amber-300 text-amber-700">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -330,24 +351,62 @@
         let mapPolyline = null;
         let livePreviewMarker = null;
 
+        // Convert 24-hour time string ("13:00") to English AM/PM format ("1:00 PM")
+        function formatEnglishTime(timeStr) {
+            if (!timeStr) return '';
+            const [hStr, mStr] = timeStr.split(':');
+            let hours = parseInt(hStr, 10);
+            const minutes = mStr || '00';
+            if (isNaN(hours)) return timeStr;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // convert 0 to 12
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
         // Initialize App
         window.addEventListener('DOMContentLoaded', () => {
+            initTimePickerOptions();
             initMainMap();
             renderDatePicker();
             renderItinerary();
             setupEventListeners();
         });
 
+        // Initialize English Time Picker Dropdown Options
+        function initTimePickerOptions() {
+            const hourSelect = document.getElementById('input-time-hour');
+            const minuteSelect = document.getElementById('input-time-minute');
+
+            let hourHtml = '';
+            for (let h = 1; h <= 12; h++) {
+                const val = h < 10 ? `0${h}` : `${h}`;
+                hourHtml += `<option value="${val}">${val}</option>`;
+            }
+            hourSelect.innerHTML = hourHtml;
+
+            let minuteHtml = '';
+            for (let m = 0; m < 60; m += 5) {
+                const val = m < 10 ? `0${m}` : `${m}`;
+                minuteHtml += `<option value="${val}">${val}</option>`;
+            }
+            minuteSelect.innerHTML = minuteHtml;
+
+            // Set default: 11:30 AM
+            hourSelect.value = "11";
+            minuteSelect.value = "30";
+            document.getElementById('input-time-ampm').value = "AM";
+        }
+
         // Initialize Main Leaflet Map
         function initMainMap() {
             // Default center: Bandar Seri Begawan, Brunei
             mainMap = L.map('map', {
-                zoomControl: false
+                zoomControl: false,
+                attributionControl: false // Disable attribution control
             }).setView([4.8950, 114.9380], 12);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(mainMap);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
 
             updateMapMarkers();
         }
@@ -357,12 +416,11 @@
             if (modalMap) return;
             
             modalMap = L.map('modal-map-preview', {
-                zoomControl: false
+                zoomControl: false,
+                attributionControl: false // Disable attribution control
             }).setView([4.8894, 114.9392], 12);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(modalMap);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
 
             // Click map inside modal to update location directly
             modalMap.on('click', (e) => {
@@ -419,7 +477,7 @@
                 });
 
                 const marker = L.marker(latLng, { icon: customIcon }).addTo(mainMap);
-                marker.bindPopup(`<b>${item.time} - ${item.title}</b>`);
+                marker.bindPopup(`<b>${formatEnglishTime(item.time)} - ${item.title}</b>`);
                 mapMarkers.push(marker);
             });
 
@@ -533,7 +591,7 @@
                         <div class="flex-1 -mt-1 ${activeCardStyle}">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <span class="text-sm font-semibold text-gray-900">${item.time}</span>
+                                    <span class="text-sm font-semibold text-gray-900">${formatEnglishTime(item.time)}</span>
                                     <h4 class="text-base font-bold text-gray-900 leading-snug">${item.title}</h4>
                                 </div>
                                 <button onclick="event.stopPropagation(); deletePlan(${item.id})" class="text-gray-300 hover:text-red-500 p-1 transition-colors">
@@ -595,6 +653,9 @@
                 editingId = null;
                 document.getElementById('modal-title-text').innerText = "Add Place to Plan";
                 btnAdd.reset();
+                document.getElementById('input-time-hour').value = "11";
+                document.getElementById('input-time-minute').value = "30";
+                document.getElementById('input-time-ampm').value = "AM";
                 modal.classList.remove('hidden');
 
                 setTimeout(() => {
@@ -711,7 +772,15 @@
             btnAdd.addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                const time = document.getElementById('input-time').value;
+                const h = document.getElementById('input-time-hour').value;
+                const m = document.getElementById('input-time-minute').value;
+                const ampm = document.getElementById('input-time-ampm').value;
+
+                let hourNum = parseInt(h, 10);
+                if (ampm === 'PM' && hourNum < 12) hourNum += 12;
+                if (ampm === 'AM' && hourNum === 12) hourNum = 0;
+
+                const time = `${String(hourNum).padStart(2, '0')}:${m}`;
                 const title = document.getElementById('input-title').value;
                 const lat = parseFloat(document.getElementById('input-lat').value);
                 const lng = parseFloat(document.getElementById('input-lng').value);
