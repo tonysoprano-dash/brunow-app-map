@@ -490,9 +490,14 @@
                 // Subscribe to doc at /artifacts/{appId}/public/data/trips/{currentTripId}
                 const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
 
+                if (unsubscribeFirestore) {
+                    unsubscribeFirestore();
+                }
+
                 unsubscribeFirestore = onSnapshot(tripDocRef, (snapshot) => {
                     if (snapshot.exists()) {
                         const data = snapshot.data();
+                        // Always sync itineraryData with remote items, even if empty array []
                         if (data && Array.isArray(data.items)) {
                             itineraryData = data.items;
                             renderItinerary();
@@ -518,7 +523,7 @@
                 await setDoc(tripDocRef, {
                     items: newItems,
                     updatedAt: new Date().toISOString()
-                }, { merge: true });
+                }, { merge: false }); // Use merge: false to guarantee deletions are overwritten correctly
             } catch (err) {
                 console.error("Failed to save to cloud:", err);
             }
