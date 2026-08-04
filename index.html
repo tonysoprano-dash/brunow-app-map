@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -64,11 +64,34 @@
             font-size: 13px;
             border: 2px solid white;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
         }
 
         .custom-map-pin.active {
             background-color: #40240B;
             transform: scale(1.15);
+        }
+
+        /* Real-time preview pin style */
+        .custom-preview-pin {
+            background-color: #EF4444;
+            color: white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 3px solid white;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+            animation: pulse-pin 1.5s infinite;
+        }
+
+        @keyframes pulse-pin {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
 
         /* Hide scrollbars for slick look */
@@ -116,7 +139,7 @@
                 <i class="fa-solid fa-arrow-left text-xl"></i>
             </button>
             <h1 class="text-lg font-medium text-black">Itinerary</h1>
-            <button id="btn-recenter" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-all" title="브루나이 한눈에 보기">
+            <button id="btn-recenter" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-all" title="View all locations">
                 <i class="fa-solid fa-location-crosshairs text-lg"></i>
             </button>
         </div>
@@ -132,12 +155,18 @@
             
             <!-- Map Container -->
             <div class="relative w-full h-[285px] rounded-2xl overflow-hidden shadow-md border border-white/40">
-                <div id="brunei-map" class="w-full h-full z-0"></div>
+                <div id="brunei-map" class="w-full h-full z-0 cursor-pointer"></div>
+                
                 <!-- Map Quick Action Overlay -->
                 <div class="absolute bottom-3 right-3 z-[400] flex flex-col gap-2">
                     <button id="btn-toggle-route" class="bg-white/90 backdrop-blur text-xs font-semibold text-gray-800 px-3 py-1.5 rounded-lg shadow border border-gray-200 flex items-center gap-1.5 hover:bg-white">
-                        <i class="fa-solid fa-route text-amber-500"></i> 경로 보기
+                        <i class="fa-solid fa-route text-amber-500"></i> Show Route
                     </button>
+                </div>
+
+                <!-- Click Map Prompt Banner when Modal is active -->
+                <div id="map-pick-hint" class="absolute top-3 left-3 right-3 z-[400] bg-amber-500/95 text-white text-xs font-semibold py-1.5 px-3 rounded-lg shadow text-center hidden backdrop-blur animate-bounce">
+                    <i class="fa-solid fa-hand-pointer mr-1"></i> Tap anywhere on map to select coordinates!
                 </div>
             </div>
         </div>
@@ -214,7 +243,9 @@
         <div id="add-modal" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
             <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform translate-y-10 transition-transform duration-300" id="modal-card">
                 <div class="flex justify-between items-center mb-4 border-b pb-3">
-                    <h3 class="text-xl font-bold text-gray-900"><i class="fa-solid fa-location-dot text-[#98C2B5] mr-2"></i>일정 추가하기</h3>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-[#98C2B5]"></i> Add New Activity
+                    </h3>
                     <button id="btn-close-modal" class="text-gray-400 hover:text-gray-600">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
@@ -222,42 +253,50 @@
                 
                 <form id="add-plan-form" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">방문 시간</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Visit Time</label>
                         <input type="time" id="input-time" value="11:30" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">브루나이 추천 명소 선택 또는 입력</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Select Preset or Enter Location</label>
                         <select id="select-preset-location" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm bg-white mb-2">
-                            <option value="">-- 브루나이 명소 프리셋 선택 --</option>
-                            <option value="Omar Ali Saifuddien Mosque|4.8894|114.9392">오마르 알리 사이푸딘 모스크 (황금 모스크)</option>
-                            <option value="Jame' 'Asr Hassanil Bolkiah|4.9081|114.9228">자메 아스르 하사날 볼키아 모스크</option>
-                            <option value="Kampong Ayer|4.8833|114.9433">캄퐁 아에르 (수상 가옥 마을)</option>
-                            <option value="The Empire Brunei|4.9667|114.8522">엠파이어 브루나이 리조트</option>
-                            <option value="Gadong Night Market|4.9128|114.9256">가동 야시장 (Gadong Night Market)</option>
+                            <option value="">-- Choose a Brunei Landmark --</option>
+                            <option value="Omar Ali Saifuddien Mosque|4.8894|114.9392">Omar Ali Saifuddien Mosque (Golden Mosque)</option>
+                            <option value="Jame' 'Asr Hassanil Bolkiah Mosque|4.9081|114.9228">Jame' 'Asr Hassanil Bolkiah Mosque</option>
+                            <option value="Kampong Ayer Water Village|4.8833|114.9433">Kampong Ayer (Water Village)</option>
+                            <option value="The Empire Brunei Resort|4.9667|114.8522">The Empire Brunei Resort</option>
+                            <option value="Gadong Night Market|4.9128|114.9256">Gadong Night Market</option>
+                            <option value="Royal Regalia Museum|4.8883|114.9408">Royal Regalia Museum</option>
+                            <option value="Tasek Lama Recreational Park|4.8988|114.9413">Tasek Lama Recreational Park</option>
                         </select>
-                        <input type="text" id="input-title" placeholder="장소 이름을 직접 입력하세요" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
+                        <input type="text" id="input-title" placeholder="e.g. Royal Regalia Museum" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">위도 (Lat)</label>
-                            <input type="number" step="any" id="input-lat" value="4.8894" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none bg-gray-50">
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-bold text-amber-900">Real-time Location Coordinates</label>
+                            <span class="text-[10px] text-amber-700"><i class="fa-solid fa-map-pin mr-1"></i>Tap map to pick</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">경도 (Lng)</label>
-                            <input type="number" step="any" id="input-lng" value="114.9392" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none bg-gray-50">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-gray-500 mb-0.5">Latitude (Lat)</label>
+                                <input type="number" step="any" id="input-lat" value="4.8894" required class="w-full px-2.5 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-gray-500 mb-0.5">Longitude (Lng)</label>
+                                <input type="number" step="any" id="input-lng" value="114.9392" required class="w-full px-2.5 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">메모 / 액티비티</label>
-                        <textarea id="input-notes" rows="2" placeholder="예: 사진 촬영하기, 시그니처 메뉴 맛보기" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#98C2B5] focus:outline-none"></textarea>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Notes / Activities</label>
+                        <textarea id="input-notes" rows="2" placeholder="e.g. Take photos, try local street food, souvenir shopping" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-[#98C2B5] focus:outline-none"></textarea>
                     </div>
 
                     <div class="pt-2 flex gap-2">
-                        <button type="button" id="btn-cancel-modal" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm">취소</button>
-                        <button type="submit" class="flex-1 py-3 bg-[#98C2B5] hover:bg-[#81aba0] text-white font-semibold rounded-xl text-sm shadow">플랜 등록하기</button>
+                        <button type="button" id="btn-cancel-modal" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm">Cancel</button>
+                        <button type="submit" class="flex-1 py-3 bg-[#98C2B5] hover:bg-[#81aba0] text-white font-semibold rounded-xl text-sm shadow">Save Activity</button>
                     </div>
                 </form>
             </div>
@@ -266,7 +305,7 @@
     </div>
 
     <script>
-        // Initial Itinerary Data for Brunei
+        // Initial Itinerary Data for Brunei in English
         const itineraryState = {
             activeDay: 1,
             selectedDate: '2026-08-08',
@@ -280,7 +319,7 @@
                             id: 'item-1',
                             time: '08:30',
                             title: "Mr Baker's Café",
-                            notes: "Breakfast & Fresh Coffee in Gadong",
+                            notes: "Breakfast & Fresh Artisan Coffee in Gadong",
                             lat: 4.9025,
                             lng: 114.9298,
                             status: 'completed'
@@ -288,8 +327,8 @@
                         {
                             id: 'item-2',
                             time: '10:00',
-                            title: 'Tasek Lama',
-                            notes: 'Hike for 20 minutes\nTake photo of waterfall',
+                            title: 'Tasek Lama Park',
+                            notes: '20-min nature hike\nTake photos at the waterfall',
                             lat: 4.8988,
                             lng: 114.9413,
                             status: 'active'
@@ -297,8 +336,8 @@
                         {
                             id: 'item-3',
                             time: '13:00',
-                            title: 'Aminah Arif',
-                            notes: 'Famous local Ambuyat cuisine lunch',
+                            title: 'Aminah Arif Restaurant',
+                            notes: 'Taste authentic Brunei Ambuyat set lunch',
                             lat: 4.9008,
                             lng: 114.9312,
                             status: 'upcoming'
@@ -306,8 +345,8 @@
                         {
                             id: 'item-4',
                             time: '16:30',
-                            title: 'Yayasan',
-                            notes: 'Shopping & Sultan Mosque view photo spot',
+                            title: 'Yayasan Shopping Complex',
+                            notes: 'Shopping & view of Sultan Mosque lagoon',
                             lat: 4.8878,
                             lng: 114.9392,
                             status: 'upcoming'
@@ -322,7 +361,7 @@
                             id: 'item-5',
                             time: '09:30',
                             title: "Omar Ali Saifuddien Mosque",
-                            notes: "Visit Iconic Golden Mosque & Lagoon",
+                            notes: "Visit the iconic Golden Mosque & marble bridge",
                             lat: 4.8894,
                             lng: 114.9392,
                             status: 'upcoming'
@@ -331,7 +370,7 @@
                             id: 'item-6',
                             time: '12:00',
                             title: "Kampong Ayer Water Village",
-                            notes: "Water taxi ride & local heritage tour",
+                            notes: "Water taxi tour & local heritage house visit",
                             lat: 4.8833,
                             lng: 114.9433,
                             status: 'upcoming'
@@ -340,7 +379,7 @@
                             id: 'item-7',
                             time: '18:00',
                             title: "Gadong Night Market",
-                            notes: "Taste local street food & 1 BND snacks",
+                            notes: "Try grilled skewers, satay, and 1 BND local drinks",
                             lat: 4.9128,
                             lng: 114.9256,
                             status: 'upcoming'
@@ -355,7 +394,7 @@
                             id: 'item-8',
                             time: '14:00',
                             title: "The Empire Brunei",
-                            notes: "Luxury 7-star resort afternoon tea & sunset",
+                            notes: "Luxury resort afternoon high tea & sunset view",
                             lat: 4.9667,
                             lng: 114.8522,
                             status: 'upcoming'
@@ -368,6 +407,8 @@
         let map = null;
         let mapMarkers = [];
         let routePolyline = null;
+        let previewMarker = null; // Live map preview marker
+        let isModalOpen = false;
 
         // Initialize Application
         window.addEventListener('DOMContentLoaded', () => {
@@ -385,12 +426,54 @@
                 attributionControl: false
             }).setView([4.8988, 114.9413], 13);
 
-            // Add clean map tiles (OpenStreetMap)
+            // Add clean map tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19
             }).addTo(map);
 
+            // Map click listener for Real-time Location Selection
+            map.on('click', (e) => {
+                if (isModalOpen) {
+                    const lat = e.latlng.lat.toFixed(4);
+                    const lng = e.latlng.lng.toFixed(4);
+                    
+                    document.getElementById('input-lat').value = lat;
+                    document.getElementById('input-lng').value = lng;
+                    
+                    updateLivePreviewMarker(lat, lng);
+                }
+            });
+
             updateMapMarkers();
+        }
+
+        // Real-time map update function when user types or selects location
+        function updateLivePreviewMarker(lat, lng) {
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lng);
+
+            if (isNaN(latitude) || isNaN(longitude)) return;
+
+            if (!previewMarker) {
+                const previewIcon = L.divIcon({
+                    className: 'custom-preview-wrapper',
+                    html: `<div class="custom-preview-pin"><i class="fa-solid fa-location-crosshairs"></i></div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+                previewMarker = L.marker([latitude, longitude], { icon: previewIcon }).addTo(map);
+            } else {
+                previewMarker.setLatLng([latitude, longitude]);
+            }
+
+            map.panTo([latitude, longitude], { animate: true, duration: 0.5 });
+        }
+
+        function removeLivePreviewMarker() {
+            if (previewMarker && map) {
+                map.removeLayer(previewMarker);
+                previewMarker = null;
+            }
         }
 
         // Update Map Markers and Route Line based on active day
@@ -413,7 +496,6 @@
             currentDayData.items.forEach((item, index) => {
                 const isSelected = item.status === 'active';
                 
-                // Custom DivIcon for numbered pins
                 const pinIcon = L.divIcon({
                     className: 'custom-pin-wrapper',
                     html: `<div class="custom-map-pin ${isSelected ? 'active' : ''}">${index + 1}</div>`,
@@ -423,7 +505,6 @@
 
                 const marker = L.marker([item.lat, item.lng], { icon: pinIcon }).addTo(map);
                 
-                // Popup info
                 marker.bindPopup(`
                     <div style="font-family: 'Instrument Sans', sans-serif;">
                         <div style="font-size:10px; color:#888; font-weight:bold;">${item.time}</div>
@@ -432,7 +513,6 @@
                     </div>
                 `);
 
-                // Click marker to focus in timeline
                 marker.on('click', () => {
                     highlightTimelineItem(item.id);
                 });
@@ -452,7 +532,7 @@
             }
 
             // Fit map bounds to show all pins for today
-            if (latLngs.length > 0) {
+            if (latLngs.length > 0 && !isModalOpen) {
                 const bounds = L.latLngBounds(latLngs);
                 map.fitBounds(bounds, { padding: [30, 30] });
             }
@@ -462,17 +542,16 @@
         function renderDateSelector() {
             const container = document.getElementById('date-selector-container');
             const dates = [
-                { day: 6, name: 'Monday', dateStr: '2026-08-06' },
-                { day: 7, name: 'Tuesday', dateStr: '2026-08-07' },
-                { day: 8, name: 'Wednesday', dateStr: '2026-08-08', dayNum: 1 },
-                { day: 9, name: 'Thursday', dateStr: '2026-08-09', dayNum: 2 },
-                { day: 10, name: 'Friday', dateStr: '2026-08-10', dayNum: 3 },
-                { day: 11, name: 'Saturday', dateStr: '2026-08-11' }
+                { day: 6, name: 'Mon', dateStr: '2026-08-06' },
+                { day: 7, name: 'Tue', dateStr: '2026-08-07' },
+                { day: 8, name: 'Wed', dateStr: '2026-08-08', dayNum: 1 },
+                { day: 9, name: 'Thu', dateStr: '2026-08-09', dayNum: 2 },
+                { day: 10, name: 'Fri', dateStr: '2026-08-10', dayNum: 3 },
+                { day: 11, name: 'Sat', dateStr: '2026-08-11' }
             ];
 
             container.innerHTML = dates.map(d => {
-                const isActive = d.day === 8; // Highlight August 8 as in design
-                const isDayTabAvailable = d.dayNum !== undefined;
+                const isActive = d.day === 8;
                 
                 return `
                     <div data-daynum="${d.dayNum || ''}" class="date-card cursor-pointer flex-shrink-0 w-[58px] h-[68px] rounded-xl border flex flex-col items-center justify-between p-1.5 transition-all ${
@@ -487,7 +566,6 @@
                 `;
             }).join('');
 
-            // Click listener for date cards
             container.querySelectorAll('.date-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const dayNum = card.dataset.daynum;
@@ -507,23 +585,20 @@
                 container.innerHTML = `
                     <div class="text-center py-12 text-gray-400">
                         <i class="fa-solid fa-map-location-dot text-4xl mb-2 text-gray-300"></i>
-                        <p class="text-sm">등록된 일정이 없습니다.</p>
-                        <p class="text-xs text-gray-400 mt-1">하단 + 버튼을 눌러 일정을 추가해보세요!</p>
+                        <p class="text-sm font-medium">No activities scheduled yet.</p>
+                        <p class="text-xs text-gray-400 mt-1">Tap the + button to add your first destination!</p>
                     </div>
                 `;
                 return;
             }
 
             let html = '<div class="relative pl-8 pt-2 pb-6 space-y-6">';
-            
-            // Vertical background line
             html += `<div class="timeline-line"></div>`;
 
-            currentDayData.items.forEach((item, index) => {
+            currentDayData.items.forEach((item) => {
                 const isActive = item.status === 'active';
                 const isCompleted = item.status === 'completed';
 
-                // Node Dot Color
                 let dotBg = 'bg-[#E8E6E6]';
                 if (isActive || isCompleted) {
                     dotBg = 'bg-[#ED9D04]';
@@ -531,13 +606,10 @@
 
                 html += `
                     <div id="${item.id}" class="relative group cursor-pointer transition-all" onclick="focusItem('${item.id}')">
-                        <!-- Node Dot -->
                         <div class="absolute -left-8 top-1 w-3.5 h-3.5 rounded-full ${dotBg} border-2 border-white shadow-sm z-10 transition-transform group-hover:scale-125"></div>
                         
-                        <!-- Next Coming up indicator badge if active -->
                         ${isActive ? `<div class="text-xs text-[#706D6D] font-medium mb-1">Next coming up</div>` : ''}
 
-                        <!-- Content Card -->
                         <div class="rounded-xl p-3 border transition-all ${
                             isActive 
                             ? 'bg-white shadow-md border-amber-300/80 ring-1 ring-amber-200' 
@@ -553,7 +625,7 @@
                                 </div>
                                 
                                 <div class="flex items-center gap-2">
-                                    <button onclick="event.stopPropagation(); deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="event.stopPropagation(); deleteItem('${item.id}')" class="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete">
                                         <i class="fa-solid fa-trash-can text-xs"></i>
                                     </button>
                                     <div class="text-gray-400">
@@ -574,7 +646,6 @@
         function switchDay(dayNum) {
             itineraryState.activeDay = dayNum;
 
-            // Update Tab UI
             document.querySelectorAll('#day-tabs button').forEach(tab => {
                 const tabDay = parseInt(tab.dataset.day);
                 if (tabDay === dayNum) {
@@ -601,7 +672,6 @@
             const targetItem = currentItems.find(i => i.id === id);
             
             if (targetItem && map) {
-                // Update active status
                 currentItems.forEach(i => i.status = (i.id === id ? 'active' : 'upcoming'));
                 renderTimeline();
                 updateMapMarkers();
@@ -647,8 +717,8 @@
                 updateMapMarkers();
                 const btn = document.getElementById('btn-toggle-route');
                 btn.innerHTML = itineraryState.showRoute 
-                    ? `<i class="fa-solid fa-route text-amber-500"></i> 경로 보기`
-                    : `<i class="fa-solid fa-eye-slash text-gray-400"></i> 경로 숨김`;
+                    ? `<i class="fa-solid fa-route text-amber-500"></i> Show Route`
+                    : `<i class="fa-solid fa-eye-slash text-gray-400"></i> Hide Route`;
             });
 
             // Recenter Map
@@ -661,20 +731,45 @@
             const btnAdd = document.getElementById('btn-add-plan');
             const btnClose = document.getElementById('btn-close-modal');
             const btnCancel = document.getElementById('btn-cancel-modal');
+            const mapPickHint = document.getElementById('map-pick-hint');
 
             const openModal = () => {
+                isModalOpen = true;
                 modal.classList.remove('opacity-0', 'pointer-events-none');
                 document.getElementById('modal-card').classList.remove('translate-y-10');
+                mapPickHint.classList.remove('hidden');
+
+                // Trigger real-time marker for default lat/lng
+                const lat = document.getElementById('input-lat').value;
+                const lng = document.getElementById('input-lng').value;
+                updateLivePreviewMarker(lat, lng);
             };
 
             const closeModal = () => {
+                isModalOpen = false;
                 modal.classList.add('opacity-0', 'pointer-events-none');
                 document.getElementById('modal-card').classList.add('translate-y-10');
+                mapPickHint.classList.add('hidden');
+                removeLivePreviewMarker();
+                updateMapMarkers();
             };
 
             btnAdd.addEventListener('click', openModal);
             btnClose.addEventListener('click', closeModal);
             btnCancel.addEventListener('click', closeModal);
+
+            // REAL-TIME INPUT LISTENERS: Lat/Lng inputs update map pin dynamically
+            const latInput = document.getElementById('input-lat');
+            const lngInput = document.getElementById('input-lng');
+
+            ['input', 'change'].forEach(eventType => {
+                latInput.addEventListener(eventType, () => {
+                    updateLivePreviewMarker(latInput.value, lngInput.value);
+                });
+                lngInput.addEventListener(eventType, () => {
+                    updateLivePreviewMarker(latInput.value, lngInput.value);
+                });
+            });
 
             // Preset location dropdown change
             document.getElementById('select-preset-location').addEventListener('change', (e) => {
@@ -682,8 +777,11 @@
                 if (val) {
                     const [name, lat, lng] = val.split('|');
                     document.getElementById('input-title').value = name;
-                    document.getElementById('input-lat').value = lat;
-                    document.getElementById('input-lng').value = lng;
+                    latInput.value = lat;
+                    lngInput.value = lng;
+                    
+                    // Real-time map update
+                    updateLivePreviewMarker(lat, lng);
                 }
             });
 
@@ -693,9 +791,9 @@
 
                 const time = document.getElementById('input-time').value;
                 const title = document.getElementById('input-title').value;
-                const lat = parseFloat(document.getElementById('input-lat').value);
-                const lng = parseFloat(document.getElementById('input-lng').value);
-                const notes = document.getElementById('input-notes').value || 'New schedule';
+                const lat = parseFloat(latInput.value);
+                const lng = parseFloat(lngInput.value);
+                const notes = document.getElementById('input-notes').value || 'New Activity';
 
                 const newItem = {
                     id: 'item-' + Date.now(),
@@ -708,15 +806,11 @@
                 };
 
                 itineraryState.days[itineraryState.activeDay].items.push(newItem);
-                
-                // Sort by time
                 itineraryState.days[itineraryState.activeDay].items.sort((a, b) => a.time.localeCompare(b.time));
 
                 renderTimeline();
-                updateMapMarkers();
                 closeModal();
 
-                // Reset form
                 document.getElementById('add-plan-form').reset();
             });
         }
