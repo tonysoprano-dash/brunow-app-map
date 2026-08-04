@@ -166,6 +166,31 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        /* Live Sync Pulse Dot */
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -176,8 +201,14 @@
             <button id="btn-back" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-colors">
                 <i class="fa-solid fa-arrow-left text-lg"></i>
             </button>
-            <span class="text-lg font-medium text-gray-800">Itinerary</span>
-            <div class="w-9"></div>
+            <div class="flex items-center gap-1.5">
+                <span class="text-lg font-semibold text-gray-800">Itinerary</span>
+                <div class="pulse-dot" title="Live Cloud Sync Active"></div>
+            </div>
+            <!-- Share Link Button -->
+            <button id="btn-share-itinerary" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-colors" title="Share Itinerary">
+                <i class="fa-solid fa-share-nodes text-lg text-emerald-800"></i>
+            </button>
         </div>
 
         <!-- Section Title & Interactive Map -->
@@ -328,11 +359,75 @@
                 </form>
             </div>
         </div>
+
+        <!-- Share Link Modal -->
+        <div id="share-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
+                <button id="btn-close-share-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-users text-amber-500 text-xl"></i>
+                    <h3 class="text-lg font-bold text-gray-900">Share & Collaborative Edit</h3>
+                </div>
+                <p class="text-xs text-gray-600 mb-4">
+                    Send this link to your trip companions! Anyone with this link can view and edit this itinerary in real-time.
+                </p>
+
+                <div class="bg-gray-50 border border-gray-200 p-2.5 rounded-xl flex items-center gap-2 mb-4">
+                    <input type="text" id="share-link-input" readonly class="bg-transparent text-xs text-gray-700 flex-1 outline-none font-mono selection:bg-amber-200">
+                    <button id="btn-copy-link" onclick="window.copyShareLink()" class="px-3 py-1.5 bg-[#98C2B5] hover:bg-[#82b3a5] text-white font-semibold rounded-lg text-xs flex items-center gap-1 shadow-sm transition-colors flex-shrink-0">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center gap-2 mb-4">
+                    <div class="pulse-dot"></div>
+                    <span class="text-xs text-emerald-800 font-medium">Real-time cloud sync active</span>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" id="btn-new-trip" onclick="window.createNewTrip()" class="w-full py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition-colors border border-amber-300">
+                        <i class="fa-solid fa-plus-circle mr-1"></i> Start New Empty Trip
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Toast Notification -->
+        <div id="toast-msg" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-4 py-2 rounded-full text-xs font-medium shadow-xl z-50 flex items-center gap-2 opacity-0 pointer-events-none transition-opacity duration-300">
+            <i class="fa-solid fa-check text-emerald-400"></i>
+            <span id="toast-text">Copied share link to clipboard!</span>
+        </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by environment or default
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'brunei-travel-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyFakeKeyForTestingOnly",
+                authDomain: "brunei-travel-app.firebaseapp.com",
+                projectId: "brunei-travel-app",
+                storageBucket: "brunei-travel-app.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:1234567890"
+              };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let unsubscribeFirestore = null;
+
         // Default Itinerary Data for Brunei
-        let itineraryData = [
+        const defaultItineraryData = [
             { id: 1, day: 1, time: "08:30", title: "Mr Baker's Bakeshop", lat: 4.9135, lng: 114.9315, notes: "Enjoy breakfast and coffee", status: "completed" },
             { id: 2, day: 1, time: "10:00", title: "Tasek Lama Park", lat: 4.8988, lng: 114.9413, notes: "Hike for 20 minutes\nTake photo of waterfall", status: "active" },
             { id: 3, day: 1, time: "13:00", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Try traditional Ambuyat dish", status: "upcoming" },
@@ -341,15 +436,35 @@
             { id: 6, day: 2, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Taste local street foods & satay", status: "upcoming" }
         ];
 
+        let itineraryData = [...defaultItineraryData];
         let selectedDay = 1;
         let selectedDate = 8; // August 8
         let editingId = null;
+        let currentTripId = getOrInitTripId();
 
         // Leaflet Map Variables
         let mainMap, modalMap;
         let mapMarkers = [];
         let mapPolyline = null;
         let livePreviewMarker = null;
+
+        function getOrInitTripId() {
+            const hash = window.location.hash.replace('#', '');
+            const params = new URLSearchParams(hash);
+            if (params.has('trip') && params.get('trip').trim().length > 0) {
+                return params.get('trip').trim();
+            }
+            // Generate friendly new trip ID
+            const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
+            window.location.hash = `trip=${newTripId}`;
+            return newTripId;
+        }
+
+        function updateShareLinkInput() {
+            const shareUrl = window.location.href;
+            const input = document.getElementById('share-link-input');
+            if (input) input.value = shareUrl;
+        }
 
         // Convert 24-hour time string ("13:00") to English AM/PM format ("1:00 PM")
         function formatEnglishTime(timeStr) {
@@ -364,13 +479,75 @@
             return `${hours}:${minutes} ${ampm}`;
         }
 
-        // Initialize App
+        async function initCloudSync() {
+            try {
+                const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (authToken) {
+                    const userCred = await signInWithCustomToken(auth, authToken);
+                    currentUser = userCred.user;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
+                }
+
+                if (!currentUser) return;
+
+                // Subscribe to doc at /artifacts/{appId}/public/data/trips/{currentTripId}
+                const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
+
+                unsubscribeFirestore = onSnapshot(tripDocRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        if (data && Array.isArray(data.items)) {
+                            itineraryData = data.items;
+                            renderItinerary();
+                            updateMapMarkers();
+                        }
+                    } else {
+                        // Document doesn't exist yet, save default initial data to Firestore
+                        saveToCloud(defaultItineraryData);
+                    }
+                }, (error) => {
+                    console.error("Firestore error:", error);
+                });
+
+            } catch (err) {
+                console.warn("Cloud sync fallback to local:", err);
+            }
+        }
+
+        async function saveToCloud(newItems) {
+            if (!currentUser) return;
+            try {
+                const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
+                await setDoc(tripDocRef, {
+                    items: newItems,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Failed to save to cloud:", err);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initTimePickerOptions();
             initMainMap();
             renderDatePicker();
             renderItinerary();
             setupEventListeners();
+            initCloudSync();
+            updateShareLinkInput();
+
+            // Listen to hash changes (e.g. user opens a new trip link in same browser)
+            window.addEventListener('hashchange', () => {
+                const newId = getOrInitTripId();
+                if (newId !== currentTripId) {
+                    currentTripId = newId;
+                    if (unsubscribeFirestore) unsubscribeFirestore();
+                    initCloudSync();
+                    updateShareLinkInput();
+                }
+            });
         });
 
         // Initialize English Time Picker Dropdown Options
@@ -398,12 +575,10 @@
             document.getElementById('input-time-ampm').value = "AM";
         }
 
-        // Initialize Main Leaflet Map
         function initMainMap() {
-            // Default center: Bandar Seri Begawan, Brunei
             mainMap = L.map('map', {
                 zoomControl: false,
-                attributionControl: false // Disable attribution control
+                attributionControl: false
             }).setView([4.8950, 114.9380], 12);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
@@ -411,18 +586,16 @@
             updateMapMarkers();
         }
 
-        // Initialize Modal Live Preview Map
         function initModalMap() {
             if (modalMap) return;
             
             modalMap = L.map('modal-map-preview', {
                 zoomControl: false,
-                attributionControl: false // Disable attribution control
+                attributionControl: false
             }).setView([4.8894, 114.9392], 12);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
 
-            // Click map inside modal to update location directly
             modalMap.on('click', (e) => {
                 const lat = e.latlng.lat.toFixed(4);
                 const lng = e.latlng.lng.toFixed(4);
@@ -432,7 +605,6 @@
             });
         }
 
-        // Update live preview marker in the modal map
         function updateLivePreviewMarker(lat, lng) {
             if (!modalMap) return;
             const parsedLat = parseFloat(lat);
@@ -451,14 +623,11 @@
             modalMap.setView(latlng, 14);
         }
 
-        // Update main map pins and route line
         function updateMapMarkers() {
-            // Clear existing markers & polyline
             mapMarkers.forEach(m => mainMap.removeLayer(m));
             mapMarkers = [];
             if (mapPolyline) mainMap.removeLayer(mapPolyline);
 
-            // Filter items for current day
             const currentItems = itineraryData.filter(item => item.day === selectedDay);
             if (currentItems.length === 0) return;
 
@@ -468,7 +637,6 @@
                 const latLng = [item.lat, item.lng];
                 latLngs.push(latLng);
 
-                // Create numbered pin icon
                 const customIcon = L.divIcon({
                     className: 'custom-pin-container',
                     html: `<div class="custom-numbered-pin">${index + 1}</div>`,
@@ -481,7 +649,6 @@
                 mapMarkers.push(marker);
             });
 
-            // Draw route line connecting places
             if (latLngs.length > 1) {
                 mapPolyline = L.polyline(latLngs, {
                     color: '#ED9D04',
@@ -491,14 +658,12 @@
                 }).addTo(mainMap);
             }
 
-            // Fit map bounds to show all markers for the day
             if (latLngs.length > 0) {
                 const bounds = L.latLngBounds(latLngs);
                 mainMap.fitBounds(bounds, { padding: [30, 30] });
             }
         }
 
-        // Render Date Selector Row
         function renderDatePicker() {
             const dateRow = document.getElementById('date-picker-row');
             const dates = [
@@ -517,7 +682,7 @@
                         isActive 
                         ? 'bg-[#F7CD4F] border-[#FFC003] text-gray-900 shadow-sm font-bold' 
                         : 'bg-[#E8E6E6] border-black/10 text-gray-600'
-                    }" onclick="selectDate(${d.dateNum})">
+                    }" onclick="window.selectDate(${d.dateNum})">
                         <span class="text-[8px] uppercase tracking-wider">${d.dayName}</span>
                         <span class="text-2xl font-bold leading-none">${d.dateNum}</span>
                         <span class="text-[8px] uppercase tracking-wider">${d.month}</span>
@@ -526,7 +691,7 @@
             }).join('');
         }
 
-        function selectDate(dateNum) {
+        window.selectDate = function(dateNum) {
             selectedDate = dateNum;
             selectedDay = dateNum === 8 ? 1 : (dateNum === 9 ? 2 : 1);
             
@@ -544,9 +709,8 @@
             renderDatePicker();
             renderItinerary();
             updateMapMarkers();
-        }
+        };
 
-        // Render Itinerary Timeline Items
         function renderItinerary() {
             const listContainer = document.getElementById('itinerary-list');
             const currentItems = itineraryData.filter(item => item.day === selectedDay);
@@ -580,7 +744,7 @@
                 }
 
                 return `
-                    <div class="relative flex gap-4 mb-5 cursor-pointer group" onclick="panToLocation(${item.lat}, ${item.lng})">
+                    <div class="relative flex gap-4 mb-5 cursor-pointer group" onclick="window.panToLocation(${item.lat}, ${item.lng})">
                         <!-- Timeline Column -->
                         <div class="relative flex flex-col items-center">
                             <div class="w-3.5 h-3.5 rounded-full ${dotColor} z-10 border-2 border-white shadow-sm"></div>
@@ -594,7 +758,7 @@
                                     <span class="text-sm font-semibold text-gray-900">${formatEnglishTime(item.time)}</span>
                                     <h4 class="text-base font-bold text-gray-900 leading-snug">${item.title}</h4>
                                 </div>
-                                <button onclick="event.stopPropagation(); deletePlan(${item.id})" class="text-gray-300 hover:text-red-500 p-1 transition-colors">
+                                <button onclick="event.stopPropagation(); window.deletePlan(${item.id})" class="text-gray-300 hover:text-red-500 p-1 transition-colors">
                                     <i class="fa-solid fa-trash-can text-xs"></i>
                                 </button>
                             </div>
@@ -612,19 +776,54 @@
             }).join('');
         }
 
-        // Pan map when clicking a location card
-        function panToLocation(lat, lng) {
+        window.panToLocation = function(lat, lng) {
             mainMap.flyTo([lat, lng], 15, { duration: 1.2 });
-        }
+        };
 
-        // Delete Plan Item
-        function deletePlan(id) {
+        window.deletePlan = function(id) {
             itineraryData = itineraryData.filter(item => item.id !== id);
             renderItinerary();
             updateMapMarkers();
+            saveToCloud(itineraryData);
+        };
+
+        window.copyShareLink = function() {
+            const input = document.getElementById('share-link-input');
+            if (input) {
+                input.select();
+                try {
+                    document.execCommand('copy');
+                    showToast("Share link copied to clipboard!");
+                } catch (e) {
+                    showToast("Failed to copy link.");
+                }
+            }
+        };
+
+        window.createNewTrip = function() {
+            const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
+            window.location.hash = `trip=${newTripId}`;
+            currentTripId = newTripId;
+            itineraryData = [];
+            renderItinerary();
+            updateMapMarkers();
+            saveToCloud([]);
+            document.getElementById('share-modal').classList.add('hidden');
+            showToast("New trip created! Share link updated.");
+        };
+
+        function showToast(text) {
+            const toast = document.getElementById('toast-msg');
+            const toastText = document.getElementById('toast-text');
+            if (toast && toastText) {
+                toastText.innerText = text;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 2500);
+            }
         }
 
-        // Setup Event Listeners
         function setupEventListeners() {
             // Day Tab switching
             document.querySelectorAll('.day-tab').forEach(tab => {
@@ -647,6 +846,7 @@
 
             // Modal Trigger Buttons
             const modal = document.getElementById('add-modal');
+            const shareModal = document.getElementById('share-modal');
             const btnAdd = document.getElementById('add-plan-form');
 
             document.getElementById('btn-add-plan').addEventListener('click', () => {
@@ -665,8 +865,14 @@
                 }, 200);
             });
 
+            document.getElementById('btn-share-itinerary').addEventListener('click', () => {
+                updateShareLinkInput();
+                shareModal.classList.remove('hidden');
+            });
+
             document.getElementById('btn-close-modal').addEventListener('click', () => modal.classList.add('hidden'));
             document.getElementById('btn-cancel').addEventListener('click', () => modal.classList.add('hidden'));
+            document.getElementById('btn-close-share-modal').addEventListener('click', () => shareModal.classList.add('hidden'));
 
             // Real-time Lat/Lng Inputs Listener
             const latInput = document.getElementById('input-lat');
@@ -677,7 +883,7 @@
                 lngInput.addEventListener(eventType, () => updateLivePreviewMarker(latInput.value, lngInput.value));
             });
 
-            // Auto Geocoding Logic using OpenStreetMap Nominatim
+            // Auto Geocoding Logic using OpenStreetMap Nominatim (English output)
             let geocodeTimeout = null;
             const inputTitle = document.getElementById('input-title');
             const btnSearchLoc = document.getElementById('btn-search-location');
@@ -693,7 +899,6 @@
 
                 try {
                     const searchQuery = query.toLowerCase().includes('brunei') ? query : `${query}, Brunei`;
-                    // Added accept-language=en to force all geocoded search results to be returned in English
                     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=en&q=${encodeURIComponent(searchQuery)}&limit=5`);
                     const data = await res.json();
 
@@ -799,11 +1004,11 @@
                 };
 
                 itineraryData.push(newPlan);
-                // Sort plans by time
                 itineraryData.sort((a, b) => a.time.localeCompare(b.time));
 
                 renderItinerary();
                 updateMapMarkers();
+                saveToCloud(itineraryData);
 
                 modal.classList.add('hidden');
             });
