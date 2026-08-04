@@ -693,7 +693,8 @@
 
                 try {
                     const searchQuery = query.toLowerCase().includes('brunei') ? query : `${query}, Brunei`;
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`);
+                    // Added accept-language=en to force all geocoded search results to be returned in English
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=en&q=${encodeURIComponent(searchQuery)}&limit=5`);
                     const data = await res.json();
 
                     btnSearchLoc.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Find`;
