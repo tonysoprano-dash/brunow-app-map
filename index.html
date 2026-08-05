@@ -213,7 +213,13 @@
 
         <!-- Section Title & Interactive Map -->
         <div class="px-6 pb-3 z-10">
-            <h1 class="text-2xl font-bold text-gray-900 mb-3">My Plan</h1>
+            <div class="flex justify-between items-center mb-3">
+                <h1 class="text-2xl font-bold text-gray-900">My Plan</h1>
+                <!-- AI Smart Generator Trigger Button -->
+                <button id="btn-open-ai-top" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI Plan Generator
+                </button>
+            </div>
             <div id="map"></div>
         </div>
 
@@ -261,12 +267,89 @@
             <button class="nav-item active">
                 <i class="fa-solid fa-calendar-days"></i>
             </button>
-            <button class="nav-item">
-                <i class="fa-solid fa-comment-dots"></i>
+            <!-- AI Generator trigger from Bottom Nav -->
+            <button class="nav-item" id="btn-nav-ai" title="AI Trip Planner Assistant">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
             </button>
             <button class="nav-item">
                 <i class="fa-solid fa-user"></i>
             </button>
+        </div>
+
+        <!-- AI Smart Generator Modal -->
+        <div id="ai-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-amber-200">
+                <button id="btn-close-ai-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                        <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">AI Itinerary Generator</h3>
+                </div>
+                <p class="text-xs text-gray-600 mb-4">
+                    Let AI automatically create an optimized Brunei travel plan for you based on your preference!
+                </p>
+
+                <!-- Travel Style Presets -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 mb-2">Select Travel Style / Persona:</label>
+                    <div class="grid grid-cols-2 gap-2" id="ai-presets-container">
+                        <button type="button" class="ai-preset-btn p-3 border border-amber-200 rounded-xl bg-amber-50/50 hover:bg-amber-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="cultural">
+                            <div>
+                                <i class="fa-solid fa-mosque text-amber-600 text-base mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Culture & Mosques</div>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1">Golden Mosque, Water Village & Museums</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-3 border border-emerald-200 rounded-xl bg-emerald-50/50 hover:bg-emerald-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="nature">
+                            <div>
+                                <i class="fa-solid fa-tree text-emerald-600 text-base mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Eco-Adventure</div>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1">Rainforest Hikes & Mangrove Safari</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-3 border border-orange-200 rounded-xl bg-orange-50/50 hover:bg-orange-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="foodie">
+                            <div>
+                                <i class="fa-solid fa-utensils text-orange-600 text-base mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Foodie Tour</div>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1">Ambuyat, Gadong Night Market & Cafe</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-3 border border-sky-200 rounded-xl bg-sky-50/50 hover:bg-sky-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="luxury">
+                            <div>
+                                <i class="fa-solid fa-crown text-sky-600 text-base mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Luxury & Leisure</div>
+                            </div>
+                            <span class="text-[10px] text-gray-500 mt-1">Empire Resort, High Tea & Beaches</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Prompt Input -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Or Describe Custom Request:</label>
+                    <textarea id="ai-custom-prompt" rows="2" placeholder="e.g. 2-day relaxed trip with kids, focus on parks and sea views" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none text-xs bg-gray-50"></textarea>
+                </div>
+
+                <!-- Action Button & Loading Indicator -->
+                <div id="ai-loading-box" class="hidden my-3 text-center py-3 bg-amber-50 rounded-xl border border-amber-200">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500 text-xl animate-bounce mb-1 block"></i>
+                    <span class="text-xs font-semibold text-amber-900">AI is crafting your Brunei travel plan...</span>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" id="btn-cancel-ai" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition-colors">Cancel</button>
+                    <button type="button" id="btn-generate-ai" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-bolt"></i> Generate Plan
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Add/Edit Location Modal -->
@@ -431,10 +514,45 @@
             { id: 6, day: 2, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Taste local street foods & satay", status: "upcoming" }
         ];
 
+        // AI Presets Database for Automatic Generation
+        const aiPresets = {
+            cultural: [
+                { id: 101, day: 1, time: "08:30", title: "Royal Regalia Museum", lat: 4.8883, lng: 114.9408, notes: "Explore royal treasures, chariots & golden crowns", status: "upcoming" },
+                { id: 102, day: 1, time: "11:00", title: "Omar Ali Saifuddien Mosque", lat: 4.8894, lng: 114.9392, notes: "Marvel at pure gold domes & reflection lagoon", status: "upcoming" },
+                { id: 103, day: 1, time: "14:00", title: "Kampong Ayer Water Village", lat: 4.8833, lng: 114.9433, notes: "Take water taxi & visit traditional stilt house", status: "upcoming" },
+                { id: 104, day: 1, time: "17:30", title: "Jame' 'Asr Hassanil Bolkiah Mosque", lat: 4.9081, lng: 114.9228, notes: "Largest mosque in Brunei with 29 golden domes", status: "upcoming" },
+                { id: 105, day: 2, time: "09:30", title: "Malay Technology Museum", lat: 4.8802, lng: 114.9605, notes: "Discover ancient handicraft and boat building history", status: "upcoming" },
+                { id: 106, day: 2, time: "13:00", title: "Sultan Omar Ali Saifuddien Bridge", lat: 4.8722, lng: 115.0112, notes: "Scenic drive across SEA's longest sea-crossing bridge", status: "upcoming" }
+            ],
+            nature: [
+                { id: 201, day: 1, time: "07:30", title: "Tasek Lama Recreational Park", lat: 4.8988, lng: 114.9413, notes: "Morning jungle trek & natural waterfall photo stop", status: "upcoming" },
+                { id: 202, day: 1, time: "11:00", title: "Brunei River Mangrove Safari", lat: 4.8810, lng: 114.9450, notes: "Spot endangered Proboscis monkeys & wild crocodiles", status: "upcoming" },
+                { id: 203, day: 1, time: "16:00", title: "Bukit Shahbandar Forest Park", lat: 4.9350, lng: 114.8250, notes: "Challenge the 7-hills hike with panoramic ocean view", status: "upcoming" },
+                { id: 204, day: 2, time: "08:00", title: "Ulu Temburong National Park Tour", lat: 4.5422, lng: 115.1588, notes: "Canopy walk high above pristine rainforest canopy", status: "upcoming" },
+                { id: 205, day: 2, time: "17:00", title: "Muara Beach", lat: 5.0322, lng: 115.0688, notes: "Relaxing beach stroll & sunset listening to South China Sea waves", status: "upcoming" }
+            ],
+            foodie: [
+                { id: 301, day: 1, time: "08:30", title: "Chop Jing Chew Bakery", lat: 4.9030, lng: 114.9120, notes: "Famous classic Roti Kacang & Teh Tarik breakfast", status: "upcoming" },
+                { id: 302, day: 1, time: "12:30", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Savor iconic Ambuyat sago starch dish with spicy dips", status: "upcoming" },
+                { id: 303, day: 1, time: "15:30", title: "Guan Hock Lee Gourmet Store", lat: 4.9100, lng: 114.9200, notes: "Sample local coffee beans & artisan snacks", status: "upcoming" },
+                { id: 304, day: 1, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Feast on B$1 satay, grilled fish, pulut panggang & fresh coconut", status: "upcoming" },
+                { id: 305, day: 2, time: "11:30", title: "Thiam Hock Restaurant", lat: 4.8912, lng: 114.9350, notes: "Famous local Brunei-Chinese roasted duck & seafood", status: "upcoming" },
+                { id: 306, day: 2, time: "17:00", title: "Kiapgeh Food Street", lat: 4.9220, lng: 114.9050, notes: "Taste traditional Malay kueh pastries & cold beverages", status: "upcoming" }
+            ],
+            luxury: [
+                { id: 401, day: 1, time: "10:00", title: "The Empire Brunei Resort", lat: 4.9667, lng: 114.8522, notes: "Check-in at 6-star coastal palace resort & pool lagoon", status: "upcoming" },
+                { id: 402, day: 1, time: "15:00", title: "Empire Country Club High Tea", lat: 4.9680, lng: 114.8530, notes: "Enjoy oceanview afternoon tea with luxury pastries", status: "upcoming" },
+                { id: 403, day: 1, time: "19:00", title: "Pantai Restaurant Seafood Dinner", lat: 4.9660, lng: 114.8510, notes: "Fine dining seaside dinner with fresh lobsters & wine alternatives", status: "upcoming" },
+                { id: 404, day: 2, time: "10:30", title: "Royal Brunei Golf & Country Club", lat: 4.9510, lng: 114.8350, notes: "18-hole championship golf course surrounded by jungle", status: "upcoming" },
+                { id: 405, day: 2, time: "16:00", title: "Jerudong Park Beach", lat: 4.9450, lng: 114.8320, notes: "Private sunset yacht charter along Brunei coastline", status: "upcoming" }
+            ]
+        };
+
         let itineraryData = [...defaultItineraryData];
         let selectedDay = 1;
         let selectedDate = 8; // August 8
         let editingId = null;
+        let selectedAIPreset = 'cultural';
         let currentTripId = getOrInitTripId();
 
         // Leaflet Map Variables
@@ -449,7 +567,6 @@
             if (params.has('trip') && params.get('trip').trim().length > 0) {
                 return params.get('trip').trim();
             }
-            // Generate friendly new trip ID
             const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
             window.location.hash = `trip=${newTripId}`;
             return newTripId;
@@ -470,7 +587,7 @@
             if (isNaN(hours)) return timeStr;
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
-            hours = hours ? hours : 12; // convert 0 to 12
+            hours = hours ? hours : 12;
             return `${hours}:${minutes} ${ampm}`;
         }
 
@@ -487,7 +604,6 @@
 
                 if (!currentUser) return;
 
-                // Subscribe to doc at /artifacts/{appId}/public/data/trips/{currentTripId}
                 const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
 
                 if (unsubscribeFirestore) {
@@ -497,14 +613,12 @@
                 unsubscribeFirestore = onSnapshot(tripDocRef, (snapshot) => {
                     if (snapshot.exists()) {
                         const data = snapshot.data();
-                        // Always sync itineraryData with remote items, even if empty array []
                         if (data && Array.isArray(data.items)) {
                             itineraryData = data.items;
                             renderItinerary();
                             updateMapMarkers();
                         }
                     } else {
-                        // Document doesn't exist yet, save default initial data to Firestore
                         saveToCloud(defaultItineraryData);
                     }
                 }, (error) => {
@@ -523,7 +637,7 @@
                 await setDoc(tripDocRef, {
                     items: newItems,
                     updatedAt: new Date().toISOString()
-                }, { merge: false }); // Use merge: false to guarantee deletions are overwritten correctly
+                }, { merge: false });
             } catch (err) {
                 console.error("Failed to save to cloud:", err);
             }
@@ -538,7 +652,6 @@
             initCloudSync();
             updateShareLinkInput();
 
-            // Listen to hash changes (e.g. user opens a new trip link in same browser)
             window.addEventListener('hashchange', () => {
                 const newId = getOrInitTripId();
                 if (newId !== currentTripId) {
@@ -550,7 +663,6 @@
             });
         });
 
-        // Initialize English Time Picker Dropdown Options
         function initTimePickerOptions() {
             const hourSelect = document.getElementById('input-time-hour');
             const minuteSelect = document.getElementById('input-time-minute');
@@ -569,7 +681,6 @@
             }
             minuteSelect.innerHTML = minuteHtml;
 
-            // Set default: 11:30 AM
             hourSelect.value = "11";
             minuteSelect.value = "30";
             document.getElementById('input-time-ampm').value = "AM";
@@ -720,7 +831,7 @@
                     <div class="text-center py-10 text-gray-400">
                         <i class="fa-solid fa-map-location-dot text-4xl mb-2"></i>
                         <p class="text-sm">No plans for this day yet.</p>
-                        <p class="text-xs text-gray-400">Click + button below to add places!</p>
+                        <p class="text-xs text-gray-400">Click + button or AI Generator to add places!</p>
                     </div>
                 `;
                 return;
@@ -824,6 +935,35 @@
             }
         }
 
+        // Trigger AI Smart Generation Logic
+        function generateAIItinerary() {
+            const loadingBox = document.getElementById('ai-loading-box');
+            const btnGen = document.getElementById('btn-generate-ai');
+
+            loadingBox.classList.remove('hidden');
+            btnGen.disabled = true;
+            btnGen.classList.add('opacity-50');
+
+            setTimeout(() => {
+                // Fetch preset or fallback
+                const generatedItems = aiPresets[selectedAIPreset] || aiPresets.cultural;
+                
+                // Set generated itinerary
+                itineraryData = JSON.parse(JSON.stringify(generatedItems));
+                
+                renderItinerary();
+                updateMapMarkers();
+                saveToCloud(itineraryData);
+
+                loadingBox.classList.add('hidden');
+                btnGen.disabled = false;
+                btnGen.classList.remove('opacity-50');
+                
+                document.getElementById('ai-modal').classList.add('hidden');
+                showToast("✨ AI generated your customized itinerary!");
+            }, 1200);
+        }
+
         function setupEventListeners() {
             // Day Tab switching
             document.querySelectorAll('.day-tab').forEach(tab => {
@@ -847,6 +987,7 @@
             // Modal Trigger Buttons
             const modal = document.getElementById('add-modal');
             const shareModal = document.getElementById('share-modal');
+            const aiModal = document.getElementById('ai-modal');
             const btnAdd = document.getElementById('add-plan-form');
 
             document.getElementById('btn-add-plan').addEventListener('click', () => {
@@ -864,6 +1005,27 @@
                     updateLivePreviewMarker(4.8894, 114.9392);
                 }, 200);
             });
+
+            // Open AI Modal Triggers
+            document.getElementById('btn-open-ai-top').addEventListener('click', () => aiModal.classList.remove('hidden'));
+            document.getElementById('btn-nav-ai').addEventListener('click', () => aiModal.classList.remove('hidden'));
+            document.getElementById('btn-close-ai-modal').addEventListener('click', () => aiModal.classList.add('hidden'));
+            document.getElementById('btn-cancel-ai').addEventListener('click', () => aiModal.classList.add('hidden'));
+
+            // AI Preset Button Selector
+            document.querySelectorAll('.ai-preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.ai-preset-btn').forEach(b => {
+                        b.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-100');
+                    });
+                    const target = e.currentTarget;
+                    target.classList.add('ring-2', 'ring-amber-500', 'bg-amber-100');
+                    selectedAIPreset = target.dataset.preset;
+                });
+            });
+
+            // Trigger AI Generation Action
+            document.getElementById('btn-generate-ai').addEventListener('click', generateAIItinerary);
 
             document.getElementById('btn-share-itinerary').addEventListener('click', () => {
                 updateShareLinkInput();
@@ -883,7 +1045,7 @@
                 lngInput.addEventListener(eventType, () => updateLivePreviewMarker(latInput.value, lngInput.value));
             });
 
-            // Auto Geocoding Logic using OpenStreetMap Nominatim (English output)
+            // Auto Geocoding Logic using OpenStreetMap Nominatim
             let geocodeTimeout = null;
             const inputTitle = document.getElementById('input-title');
             const btnSearchLoc = document.getElementById('btn-search-location');
