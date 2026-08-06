@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BruNow - Brunei Travel Planner</title>
+    <title>BruNow - Brunei Travel Itinerary App</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS & JS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Google Fonts -->
@@ -26,6 +26,7 @@
             min-height: 100vh;
         }
 
+        /* Mobile Device Container Styling matching Figma specs */
         .app-container {
             width: 100%;
             max-width: 430px;
@@ -46,6 +47,7 @@
             }
         }
 
+        /* Map styling */
         #map {
             width: 100%;
             height: 285px;
@@ -54,6 +56,7 @@
             z-index: 10;
         }
 
+        /* Modal map preview */
         #modal-map-preview {
             width: 100%;
             height: 160px;
@@ -61,10 +64,12 @@
             margin-top: 8px;
         }
 
+        /* Hide Leaflet / OpenStreetMap attribution watermark */
         .leaflet-control-attribution {
             display: none !important;
         }
 
+        /* Custom Leaflet Numbered Pin */
         .custom-numbered-pin {
             background-color: #ED9D04;
             color: white;
@@ -80,6 +85,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
+        /* Bottom Sheet Styling */
         .sheet-container {
             position: absolute;
             top: 390px;
@@ -96,6 +102,7 @@
             padding-bottom: 80px;
         }
 
+        /* Bottom Navigation Bar */
         .bottom-nav {
             position: absolute;
             bottom: 16px;
@@ -130,6 +137,7 @@
             backdrop-filter: blur(10px);
         }
 
+        /* Custom Scrollbar */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -138,6 +146,7 @@
             scrollbar-width: none;
         }
 
+        /* Timeline Connector Lines */
         .timeline-line {
             position: absolute;
             left: 17px;
@@ -158,6 +167,7 @@
             overflow: hidden;
         }
 
+        /* Live Sync Pulse Dot */
         .pulse-dot {
             width: 8px;
             height: 8px;
@@ -168,9 +178,18 @@
         }
 
         @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
         }
     </style>
 </head>
@@ -186,6 +205,7 @@
                 <span class="text-lg font-semibold text-gray-800">Itinerary</span>
                 <div class="pulse-dot" title="Live Cloud Sync Active"></div>
             </div>
+            <!-- Share Link Button -->
             <button id="btn-share-itinerary" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-colors" title="Share Itinerary">
                 <i class="fa-solid fa-share-nodes text-lg text-emerald-800"></i>
             </button>
@@ -195,15 +215,17 @@
         <div class="px-6 pb-3 z-10">
             <div class="flex justify-between items-center mb-3">
                 <h1 class="text-2xl font-bold text-gray-900">My Plan</h1>
+                <!-- AI Smart Generator Trigger Button -->
                 <button id="btn-open-ai-top" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI Generator
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini AI Generator
                 </button>
             </div>
             <div id="map"></div>
         </div>
 
-        <!-- Bottom Sheet Container -->
+        <!-- Bottom Sheet Container for Today's Plan -->
         <div class="sheet-container">
+            <!-- Header with Title & Filter -->
             <div class="flex items-center justify-between px-6 pt-5 pb-3">
                 <h2 class="text-2xl font-bold text-gray-900">Today’s Plan</h2>
                 <button id="btn-filter" class="p-2 text-gray-700 hover:text-gray-900 transition-colors">
@@ -211,16 +233,27 @@
                 </button>
             </div>
 
-            <!-- Horizontal Date Picker Row -->
-            <div class="flex gap-2.5 px-5 overflow-x-auto no-scrollbar pb-3" id="date-picker-row"></div>
+            <!-- Horizontal Date Picker Row (6 to 11 August) -->
+            <div class="flex gap-2.5 px-5 overflow-x-auto no-scrollbar pb-3" id="date-picker-row">
+                <!-- Days generated dynamically -->
+            </div>
 
-            <!-- Day Selector Tabs (Generated Dynamically) -->
-            <div class="flex border-b border-gray-200 px-6 mb-3 overflow-x-auto no-scrollbar" id="day-tabs-container"></div>
+            <!-- Day Selector Tabs -->
+            <div class="flex border-b border-gray-200 px-6 mb-3">
+                <button class="day-tab text-sm font-semibold py-2 px-4 border-b-2 border-[#98C2B5] text-[#98C2B5]" data-day="1">
+                    Day 1 <span class="text-[10px] font-normal block text-gray-500">8 August, Wednesday</span>
+                </button>
+                <button class="day-tab text-sm font-semibold py-2 px-4 text-gray-400 border-b-2 border-transparent" data-day="2">
+                    Day 2 <span class="text-[10px] font-normal block text-gray-400">9 August, Thursday</span>
+                </button>
+            </div>
 
             <!-- Itinerary Timeline List -->
-            <div class="flex-1 overflow-y-auto px-6 no-scrollbar pb-16" id="itinerary-list"></div>
+            <div class="flex-1 overflow-y-auto px-6 no-scrollbar pb-16" id="itinerary-list">
+                <!-- Timeline items rendered dynamically -->
+            </div>
 
-            <!-- Floating Action Button -->
+            <!-- Floating Action Button (+ Add Location) -->
             <button id="btn-add-plan" class="absolute right-6 bottom-24 w-12 h-12 bg-[#98C2B5] hover:bg-[#83b0a2] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-30">
                 <i class="fa-solid fa-plus text-xl"></i>
             </button>
@@ -234,6 +267,7 @@
             <button class="nav-item active">
                 <i class="fa-solid fa-calendar-days"></i>
             </button>
+            <!-- AI Generator trigger from Bottom Nav -->
             <button class="nav-item" id="btn-nav-ai" title="AI Trip Planner Assistant">
                 <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
             </button>
@@ -242,7 +276,7 @@
             </button>
         </div>
 
-        <!-- AI Generator Modal -->
+        <!-- AI Smart Generator Modal -->
         <div id="ai-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-amber-200">
                 <button id="btn-close-ai-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -253,38 +287,82 @@
                     <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                         <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-900">Gemini AI Travel Planner</h3>
+                    <h3 class="text-lg font-bold text-gray-900">Gemini AI Itinerary Generator</h3>
                 </div>
+                <p class="text-xs text-gray-600 mb-3">
+                    Gemini AI will automatically think and construct a custom JSON itinerary plotted directly onto your map!
+                </p>
 
-                <!-- API Key Input -->
+                <!-- Gemini API Key Input -->
                 <div class="mb-3 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                    <label class="block text-[11px] font-bold text-amber-900 mb-1">Google Gemini API Key:</label>
-                    <input type="password" id="gemini-api-key" placeholder="AIzaSy..." class="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-500 font-mono">
-                    <p class="text-[10px] text-amber-700 mt-1">Get free key from <a href="https://aistudio.google.com/" target="_blank" class="underline font-bold">Google AI Studio</a></p>
+                    <label class="block text-[11px] font-bold text-amber-900 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-key text-amber-600"></i> Gemini API Key (Saved locally):
+                    </label>
+                    <input type="password" id="gemini-api-key" placeholder="AIzaSy..." class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono">
+                    <p class="text-[9px] text-amber-700 mt-1">Leave blank to use pre-configured preset fallback if no key is provided.</p>
                 </div>
 
-                <!-- Prompt Input -->
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Your Travel Wish / Prompt:</label>
-                    <textarea id="ai-custom-prompt" rows="3" placeholder="e.g. make 7 plans for a family visiting mosques, parks, and night markets" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none text-xs bg-gray-50">make 7 plans in Brunei</textarea>
+                <!-- Travel Style Presets -->
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 mb-2">Select Travel Style / Persona:</label>
+                    <div class="grid grid-cols-2 gap-2" id="ai-presets-container">
+                        <button type="button" class="ai-preset-btn p-2.5 border border-amber-200 rounded-xl bg-amber-50/50 hover:bg-amber-100/70 text-left transition-colors flex flex-col justify-between active:scale-95 ring-2 ring-amber-500" data-preset="cultural">
+                            <div>
+                                <i class="fa-solid fa-mosque text-amber-600 text-sm mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Culture & Mosques</div>
+                            </div>
+                            <span class="text-[9px] text-gray-500 mt-1">Golden Mosque, Water Village & Museums</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-2.5 border border-emerald-200 rounded-xl bg-emerald-50/50 hover:bg-emerald-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="nature">
+                            <div>
+                                <i class="fa-solid fa-tree text-emerald-600 text-sm mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Eco-Adventure</div>
+                            </div>
+                            <span class="text-[9px] text-gray-500 mt-1">Rainforest Hikes & Mangrove Safari</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-2.5 border border-orange-200 rounded-xl bg-orange-50/50 hover:bg-orange-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="foodie">
+                            <div>
+                                <i class="fa-solid fa-utensils text-orange-600 text-sm mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Foodie Tour</div>
+                            </div>
+                            <span class="text-[9px] text-gray-500 mt-1">Ambuyat, Gadong Night Market & Cafe</span>
+                        </button>
+
+                        <button type="button" class="ai-preset-btn p-2.5 border border-sky-200 rounded-xl bg-sky-50/50 hover:bg-sky-100/70 text-left transition-colors flex flex-col justify-between active:scale-95" data-preset="luxury">
+                            <div>
+                                <i class="fa-solid fa-crown text-sky-600 text-sm mb-1 block"></i>
+                                <div class="font-bold text-xs text-gray-900">Luxury & Leisure</div>
+                            </div>
+                            <span class="text-[9px] text-gray-500 mt-1">Empire Resort, High Tea & Beaches</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Loading Box -->
+                <!-- Custom Prompt Input -->
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Or Describe Custom Preference:</label>
+                    <textarea id="ai-custom-prompt" rows="2" placeholder="e.g. 2-day relaxed family trip focused on parks, local cafes, and scenic sunset views" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none text-xs bg-gray-50"></textarea>
+                </div>
+
+                <!-- Action Button & Loading Indicator -->
                 <div id="ai-loading-box" class="hidden my-3 text-center py-3 bg-amber-50 rounded-xl border border-amber-200">
-                    <i class="fa-solid fa-spinner fa-spin text-amber-500 text-xl mb-1 block"></i>
-                    <span class="text-xs font-semibold text-amber-900">Gemini AI is generating itinerary & map coordinates...</span>
+                    <i class="fa-solid fa-brain text-amber-500 text-xl animate-bounce mb-1 block"></i>
+                    <span class="text-xs font-semibold text-amber-900 block">Gemini AI is thinking & calculating routes...</span>
+                    <span class="text-[10px] text-amber-700">Generating JSON payload & mapping locations</span>
                 </div>
 
                 <div class="flex gap-2 pt-1">
                     <button type="button" id="btn-cancel-ai" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition-colors">Cancel</button>
                     <button type="button" id="btn-generate-ai" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-bolt"></i> Generate Itinerary
+                        <i class="fa-solid fa-bolt"></i> Generate with Gemini
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Add Location Modal -->
+        <!-- Add/Edit Location Modal -->
         <div id="add-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
                 <button id="btn-close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -297,13 +375,16 @@
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Visit Time</label>
                         <div class="grid grid-cols-3 gap-2">
                             <div>
-                                <select id="input-time-hour" class="w-full px-2 py-2 border rounded-xl text-xs font-semibold bg-white"></select>
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Hour</span>
+                                <select id="input-time-hour" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-semibold bg-white"></select>
                             </div>
                             <div>
-                                <select id="input-time-minute" class="w-full px-2 py-2 border rounded-xl text-xs font-semibold bg-white"></select>
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Minute</span>
+                                <select id="input-time-minute" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-semibold bg-white"></select>
                             </div>
                             <div>
-                                <select id="input-time-ampm" class="w-full px-2 py-2 border rounded-xl text-xs font-bold bg-amber-50 border-amber-300 text-amber-700">
+                                <span class="text-[10px] text-gray-400 font-medium block mb-0.5">Period</span>
+                                <select id="input-time-ampm" class="w-full px-2 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-xs font-bold bg-amber-50 border-amber-300 text-amber-700">
                                     <option value="AM">AM</option>
                                     <option value="PM">PM</option>
                                 </select>
@@ -312,17 +393,38 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Location Name</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Location Name (Auto-searches Map)</label>
                         <div class="relative">
                             <div class="flex gap-2">
-                                <input type="text" id="input-title" placeholder="e.g. Jerudong Park" required class="flex-1 px-3 py-2 border rounded-xl text-sm">
-                                <button type="button" id="btn-search-location" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-xl">Find</button>
+                                <input type="text" id="input-title" placeholder="e.g. Jerudong Park, Brunei Museum" required class="flex-1 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm">
+                                <button type="button" id="btn-search-location" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Find
+                                </button>
                             </div>
-                            <div id="search-results-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto hidden text-xs"></div>
+                            <div id="search-results-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto hidden text-xs"></div>
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Or Pick Preset Brunei Landmark</label>
+                        <select id="select-preset-location" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm bg-white">
+                            <option value="">-- Choose a Brunei Landmark --</option>
+                            <option value="Omar Ali Saifuddien Mosque|4.8894|114.9392">Omar Ali Saifuddien Mosque (Golden Mosque)</option>
+                            <option value="Jame' 'Asr Hassanil Bolkiah Mosque|4.9081|114.9228">Jame' 'Asr Hassanil Bolkiah Mosque</option>
+                            <option value="Kampong Ayer Water Village|4.8833|114.9433">Kampong Ayer (Water Village)</option>
+                            <option value="The Empire Brunei Resort|4.9667|114.8522">The Empire Brunei Resort</option>
+                            <option value="Gadong Night Market|4.9128|114.9256">Gadong Night Market</option>
+                            <option value="Royal Regalia Museum|4.8883|114.9408">Royal Regalia Museum</option>
+                            <option value="Tasek Lama Recreational Park|4.8988|114.9413">Tasek Lama Recreational Park</option>
+                            <option value="Jerudong Park Playground|4.9422|114.8385">Jerudong Park Playground</option>
+                        </select>
+                    </div>
+
                     <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-bold text-amber-900">Real-time Location Coordinates</label>
+                            <span class="text-[10px] text-amber-700"><i class="fa-solid fa-map-pin mr-1"></i>Tap map to pick</span>
+                        </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <span class="text-[10px] text-gray-500">Latitude</span>
@@ -337,57 +439,71 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-                        <textarea id="input-notes" rows="2" placeholder="Activities..." class="w-full px-3 py-2 border rounded-xl text-sm"></textarea>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Notes / Activities</label>
+                        <textarea id="input-notes" rows="2" placeholder="e.g. Take photos, try local food..." class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#98C2B5] focus:outline-none text-sm"></textarea>
                     </div>
 
                     <div class="flex gap-2 pt-2">
-                        <button type="button" id="btn-cancel" class="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl text-sm">Cancel</button>
-                        <button type="submit" class="flex-1 py-2.5 bg-[#98C2B5] text-white font-semibold rounded-xl text-sm shadow-md">Save Plan</button>
+                        <button type="button" id="btn-cancel" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors">Cancel</button>
+                        <button type="submit" class="flex-1 py-2.5 bg-[#98C2B5] hover:bg-[#82b3a5] text-white font-semibold rounded-xl text-sm shadow-md transition-colors">Save Plan</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Share Modal -->
+        <!-- Share Link Modal -->
         <div id="share-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
             <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl relative">
                 <button id="btn-close-share-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
-                <h3 class="text-lg font-bold text-gray-900 mb-2">Share & Collaboration</h3>
-                <p class="text-xs text-gray-600 mb-4">Send this link to travel companions to view & edit live together!</p>
-                <div class="bg-gray-50 border p-2.5 rounded-xl flex items-center gap-2 mb-4">
-                    <input type="text" id="share-link-input" readonly class="bg-transparent text-xs text-gray-700 flex-1 outline-none font-mono">
-                    <button onclick="window.copyShareLink()" class="px-3 py-1.5 bg-[#98C2B5] text-white font-semibold rounded-lg text-xs">Copy</button>
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-users text-amber-500 text-xl"></i>
+                    <h3 class="text-lg font-bold text-gray-900">Share & Collaborative Edit</h3>
+                </div>
+                <p class="text-xs text-gray-600 mb-4">
+                    Send this link to your trip companions! Anyone with this link can view and edit this itinerary in real-time.
+                </p>
+
+                <div class="bg-gray-50 border border-gray-200 p-2.5 rounded-xl flex items-center gap-2 mb-4">
+                    <input type="text" id="share-link-input" readonly class="bg-transparent text-xs text-gray-700 flex-1 outline-none font-mono selection:bg-amber-200">
+                    <button id="btn-copy-link" onclick="window.copyShareLink()" class="px-3 py-1.5 bg-[#98C2B5] hover:bg-[#82b3a5] text-white font-semibold rounded-lg text-xs flex items-center gap-1 shadow-sm transition-colors flex-shrink-0">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" id="btn-new-trip" onclick="window.createNewTrip()" class="w-full py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition-colors border border-amber-300">
+                        <i class="fa-solid fa-plus-circle mr-1"></i> Start New Empty Trip
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Toast Notification -->
+        <!-- Success Toast Notification -->
         <div id="toast-msg" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-4 py-2 rounded-full text-xs font-medium shadow-xl z-50 flex items-center gap-2 opacity-0 pointer-events-none transition-opacity duration-300">
-            <i class="fa-solid fa-info-circle text-amber-400"></i>
-            <span id="toast-text">Notification</span>
+            <i class="fa-solid fa-check text-emerald-400"></i>
+            <span id="toast-text">Copied share link to clipboard!</span>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // GitHub Raw System Prompt URL
-        const GITHUB_PROMPT_URL = "https://raw.githubusercontent.com/your-username/your-repo/main/system_prompt.txt";
-
-        const appId = 'brunei-travel-app';
-        const firebaseConfig = {
-            apiKey: "AIzaSyFakeKeyForTestingOnly",
-            authDomain: "brunei-travel-app.firebaseapp.com",
-            projectId: "brunei-travel-app",
-            storageBucket: "brunei-travel-app.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:1234567890"
-        };
+        // Global Firebase Configuration
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'brunei-travel-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyFakeKeyForTestingOnly",
+                authDomain: "brunei-travel-app.firebaseapp.com",
+                projectId: "brunei-travel-app",
+                storageBucket: "brunei-travel-app.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:1234567890"
+              };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -396,15 +512,55 @@
         let currentUser = null;
         let unsubscribeFirestore = null;
 
-        let defaultItineraryData = [
+        // Default Itinerary Data
+        const defaultItineraryData = [
             { id: 1, day: 1, time: "08:30", title: "Mr Baker's Bakeshop", lat: 4.9135, lng: 114.9315, notes: "Enjoy breakfast and coffee", status: "completed" },
-            { id: 2, day: 1, time: "10:00", title: "Tasek Lama Park", lat: 4.8988, lng: 114.9413, notes: "Hike and waterfall view", status: "active" },
-            { id: 3, day: 1, time: "13:00", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Try Ambuyat dish", status: "upcoming" }
+            { id: 2, day: 1, time: "10:00", title: "Tasek Lama Park", lat: 4.8988, lng: 114.9413, notes: "Hike for 20 minutes\nTake photo of waterfall", status: "active" },
+            { id: 3, day: 1, time: "13:00", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Try traditional Ambuyat dish", status: "upcoming" },
+            { id: 4, day: 1, time: "16:30", title: "Yayasan Sultan Complex", lat: 4.8880, lng: 114.9400, notes: "Shopping and sunset view over Golden Mosque", status: "upcoming" },
+            { id: 5, day: 2, time: "09:00", title: "Kampong Ayer Water Village", lat: 4.8833, lng: 114.9433, notes: "Water taxi tour and cultural house visit", status: "upcoming" },
+            { id: 6, day: 2, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Taste local street foods & satay", status: "upcoming" }
         ];
+
+        // Backup Presets if no Gemini Key or network error occurs
+        const aiPresets = {
+            cultural: [
+                { id: 101, day: 1, time: "08:30", title: "Royal Regalia Museum", lat: 4.8883, lng: 114.9408, notes: "Explore royal treasures, chariots & golden crowns", status: "upcoming" },
+                { id: 102, day: 1, time: "11:00", title: "Omar Ali Saifuddien Mosque", lat: 4.8894, lng: 114.9392, notes: "Marvel at pure gold domes & reflection lagoon", status: "upcoming" },
+                { id: 103, day: 1, time: "14:00", title: "Kampong Ayer Water Village", lat: 4.8833, lng: 114.9433, notes: "Take water taxi & visit traditional stilt house", status: "upcoming" },
+                { id: 104, day: 1, time: "17:30", title: "Jame' 'Asr Hassanil Bolkiah Mosque", lat: 4.9081, lng: 114.9228, notes: "Largest mosque in Brunei with 29 golden domes", status: "upcoming" },
+                { id: 105, day: 2, time: "09:30", title: "Malay Technology Museum", lat: 4.8802, lng: 114.9605, notes: "Discover ancient handicraft and boat building history", status: "upcoming" },
+                { id: 106, day: 2, time: "13:00", title: "Sultan Omar Ali Saifuddien Bridge", lat: 4.8722, lng: 115.0112, notes: "Scenic drive across SEA's longest sea-crossing bridge", status: "upcoming" }
+            ],
+            nature: [
+                { id: 201, day: 1, time: "07:30", title: "Tasek Lama Recreational Park", lat: 4.8988, lng: 114.9413, notes: "Morning jungle trek & natural waterfall photo stop", status: "upcoming" },
+                { id: 202, day: 1, time: "11:00", title: "Brunei River Mangrove Safari", lat: 4.8810, lng: 114.9450, notes: "Spot endangered Proboscis monkeys & wild crocodiles", status: "upcoming" },
+                { id: 203, day: 1, time: "16:00", title: "Bukit Shahbandar Forest Park", lat: 4.9350, lng: 114.8250, notes: "Challenge the 7-hills hike with panoramic ocean view", status: "upcoming" },
+                { id: 204, day: 2, time: "08:00", title: "Ulu Temburong National Park Tour", lat: 4.5422, lng: 115.1588, notes: "Canopy walk high above pristine rainforest canopy", status: "upcoming" },
+                { id: 205, day: 2, time: "17:00", title: "Muara Beach", lat: 5.0322, lng: 115.0688, notes: "Relaxing beach stroll & sunset listening to South China Sea waves", status: "upcoming" }
+            ],
+            foodie: [
+                { id: 301, day: 1, time: "08:30", title: "Chop Jing Chew Bakery", lat: 4.9030, lng: 114.9120, notes: "Famous classic Roti Kacang & Teh Tarik breakfast", status: "upcoming" },
+                { id: 302, day: 1, time: "12:30", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Savor iconic Ambuyat sago starch dish with spicy dips", status: "upcoming" },
+                { id: 303, day: 1, time: "15:30", title: "Guan Hock Lee Gourmet Store", lat: 4.9100, lng: 114.9200, notes: "Sample local coffee beans & artisan snacks", status: "upcoming" },
+                { id: 304, day: 1, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Feast on B$1 satay, grilled fish, pulut panggang & fresh coconut", status: "upcoming" },
+                { id: 305, day: 2, time: "11:30", title: "Thiam Hock Restaurant", lat: 4.8912, lng: 114.9350, notes: "Famous local Brunei-Chinese roasted duck & seafood", status: "upcoming" },
+                { id: 306, day: 2, time: "17:00", title: "Kiapgeh Food Street", lat: 4.9220, lng: 114.9050, notes: "Taste traditional Malay kueh pastries & cold beverages", status: "upcoming" }
+            ],
+            luxury: [
+                { id: 401, day: 1, time: "10:00", title: "The Empire Brunei Resort", lat: 4.9667, lng: 114.8522, notes: "Check-in at 6-star coastal palace resort & pool lagoon", status: "upcoming" },
+                { id: 402, day: 1, time: "15:00", title: "Empire Country Club High Tea", lat: 4.9680, lng: 114.8530, notes: "Enjoy oceanview afternoon tea with luxury pastries", status: "upcoming" },
+                { id: 403, day: 1, time: "19:00", title: "Pantai Restaurant Seafood Dinner", lat: 4.9660, lng: 114.8510, notes: "Fine dining seaside dinner with fresh lobsters & wine alternatives", status: "upcoming" },
+                { id: 404, day: 2, time: "10:30", title: "Royal Brunei Golf & Country Club", lat: 4.9510, lng: 114.8350, notes: "18-hole championship golf course surrounded by jungle", status: "upcoming" },
+                { id: 405, day: 2, time: "16:00", title: "Jerudong Park Beach", lat: 4.9450, lng: 114.8320, notes: "Private sunset yacht charter along Brunei coastline", status: "upcoming" }
+            ]
+        };
 
         let itineraryData = [...defaultItineraryData];
         let selectedDay = 1;
         let selectedDate = 8;
+        let editingId = null;
+        let selectedAIPreset = 'cultural';
         let currentTripId = getOrInitTripId();
 
         let mainMap, modalMap;
@@ -412,27 +568,21 @@
         let mapPolyline = null;
         let livePreviewMarker = null;
 
-        function getOrInitTripId() {
-            const hash = window.location.hash.replace('#', '');
-            const params = new URLSearchParams(hash);
-            if (params.has('trip') && params.get('trip').trim().length > 0) {
         /**
          * Real Google Gemini API Call with JSON Structured Output
          */
         async function fetchGeminiItinerary(userInstruction, apiKey = "") {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
             const systemPrompt = `You are a world-class travel planner for Brunei Darussalam. 
-Generate a realistic travel itinerary for a tourist visiting Brunei Darussalam based strictly on the user's prompt or preference.
-STRICT RULE FOR QUANTITY:
-Follow all requested plan/item counts in prompt (e.g. "7 plans" = output EXACTLY 7 items). Put them in Day 1 unless multiple days are specified.
+Generate a realistic 2-day travel itinerary for a tourist visiting Brunei Darussalam based strictly on the user's prompt or preference.
 You MUST output a JSON array of objects. Each object represents a place or activity in the itinerary.
 Ensure real, accurate geographic coordinates in Brunei (latitude around 4.5 to 5.1, longitude around 114.5 to 115.1).
-Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer (1, 2, 3...). Write concise titles and notes in English.`;
+Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2. Write concise titles and notes in English.`;
 
             const payload = {
                 contents: [
-                    { parts: [{ text: `Generate a Brunei travel itinerary strictly tailored to this request: "${userInstruction}". Follow exact count requested.` }] }
+                    { parts: [{ text: `Generate a 2-day Brunei travel itinerary tailored to this request: "${userInstruction}". Include 3 to 4 places per day.` }] }
                 ],
                 systemInstruction: {
                     parts: [{ text: systemPrompt }]
@@ -462,8 +612,145 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer (1, 2, 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                throw new Error(errJson.error?.message || `Gemini API error status ${response.status}`);
+            }
+
+            const result = await response.json();
+            const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawText) {
+                throw new Error("No response text received from Gemini API.");
+            }
+
+            const parsed = JSON.parse(rawText);
+            if (!Array.isArray(parsed) || parsed.length === 0) {
+                throw new Error("Invalid itinerary payload structure.");
+            }
+
+            return parsed.map((item, idx) => ({
+                id: Date.now() + idx,
+                day: parseInt(item.day) || 1,
+                time: item.time || "10:00",
+                title: item.title || "Brunei Spot",
+                lat: typeof item.lat === 'number' && !isNaN(item.lat) ? item.lat : 4.8894,
+                lng: typeof item.lng === 'number' && !isNaN(item.lng) ? item.lng : 114.9392,
+                notes: item.notes || "",
+                status: (item.day === 1 && idx === 0) ? "completed" : ((item.day === 1 && idx === 1) ? "active" : "upcoming")
+            }));
+        }
+
+        // Gemini AI Generation Action Handler
+        async function generateAIItinerary() {
+            const loadingBox = document.getElementById('ai-loading-box');
+            const btnGen = document.getElementById('btn-generate-ai');
+            const customPromptInput = document.getElementById('ai-custom-prompt');
+            const apiKeyInput = document.getElementById('gemini-api-key');
+
+            const apiKey = apiKeyInput ? apiKeyInput.value.trim() : "";
+            if (apiKey) {
+                localStorage.setItem('gemini_api_key', apiKey);
+            }
+
+            const customPrompt = customPromptInput ? customPromptInput.value.trim() : "";
+            const promptToUse = customPrompt !== "" ? customPrompt : `Travel style: ${selectedAIPreset} in Brunei`;
+
+            loadingBox.classList.remove('hidden');
+            btnGen.disabled = true;
+            btnGen.classList.add('opacity-50');
+
+            try {
+                // Always call Gemini API (Runtime environment provides key automatically if empty)
+                const generatedItems = await fetchGeminiItinerary(promptToUse, apiKey);
+                if (generatedItems && generatedItems.length > 0) {
+                    itineraryData = generatedItems;
+                    selectedDay = 1;
+                    selectedDate = 8;
+                    renderDatePicker();
+                    renderItinerary();
+                    updateMapMarkers();
+                    saveToCloud(itineraryData);
+                    showToast("✨ 제미나이가 요청하신 여행 일정을 지도에 반영했습니다!");
+                } else {
+                    throw new Error("Empty response array from Gemini.");
+                }
             } catch (err) {
-                console.warn("Cloud sync error:", err);
+                console.error("Gemini API generation error:", err);
+                showToast(`⚠️ 제미나이 생성 오류: ${err.message}`);
+            } finally {
+                loadingBox.classList.add('hidden');
+                btnGen.disabled = false;
+                btnGen.classList.remove('opacity-50');
+                document.getElementById('ai-modal').classList.add('hidden');
+            }
+        }
+
+        function getOrInitTripId() {
+            const hash = window.location.hash.replace('#', '');
+            const params = new URLSearchParams(hash);
+            if (params.has('trip') && params.get('trip').trim().length > 0) {
+                return params.get('trip').trim();
+            }
+            const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
+            window.location.hash = `trip=${newTripId}`;
+            return newTripId;
+        }
+
+        function updateShareLinkInput() {
+            const shareUrl = window.location.href;
+            const input = document.getElementById('share-link-input');
+            if (input) input.value = shareUrl;
+        }
+
+        function formatEnglishTime(timeStr) {
+            if (!timeStr) return '';
+            const [hStr, mStr] = timeStr.split(':');
+            let hours = parseInt(hStr, 10);
+            const minutes = mStr || '00';
+            if (isNaN(hours)) return timeStr;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        async function initCloudSync() {
+            try {
+                const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (authToken) {
+                    const userCred = await signInWithCustomToken(auth, authToken);
+                    currentUser = userCred.user;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
+                }
+
+                if (!currentUser) return;
+
+                const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
+
+                if (unsubscribeFirestore) {
+                    unsubscribeFirestore();
+                }
+
+                unsubscribeFirestore = onSnapshot(tripDocRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        if (data && Array.isArray(data.items)) {
+                            itineraryData = data.items;
+                            renderItinerary();
+                            updateMapMarkers();
+                        }
+                    } else {
+                        saveToCloud(defaultItineraryData);
+                    }
+                }, (error) => {
+                    console.error("Firestore error:", error);
+                });
+
+            } catch (err) {
+                console.warn("Cloud sync fallback to local:", err);
             }
         }
 
@@ -480,202 +767,105 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer (1, 2, 
             }
         }
 
-        async function fetchGeminiItinerary(userInstruction, apiKey) {
-            let systemPrompt = `You are a travel planner for Brunei Darussalam.
-Generate a realistic travel itinerary for Brunei based strictly on user prompt.
-STRICT RULE FOR QUANTITY & DAYS:
-1. Carefully follow requested plan counts in prompt (e.g. "7 plans" = output EXACTLY 7 items).
-2. If user asks for N plans without specifying multiple days, put ALL N items under Day 1.
-3. Output a valid JSON array of objects with keys: "day" (number), "time" (24h HH:MM), "title" (string), "lat" (number 4.5 to 5.1), "lng" (number 114.5 to 115.1), "notes" (string).`;
-
-            try {
-                if (GITHUB_PROMPT_URL && !GITHUB_PROMPT_URL.includes("your-username")) {
-                    const promptRes = await fetch(GITHUB_PROMPT_URL);
-                    if (promptRes.ok) {
-                        const rawText = await promptRes.text();
-                        if (rawText.trim().length > 0) systemPrompt = rawText.trim();
-                    }
-                }
-            } catch (err) {
-                console.warn("Could not fetch prompt from GitHub Raw, using built-in system prompt:", err);
-            }
-
-            const modelNames = ["gemini-2.5-flash", "gemini-1.5-flash"];
-            let lastError = null;
-
-            for (const model of modelNames) {
-                try {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-                    const payload = {
-                        contents: [{ parts: [{ text: `Generate a Brunei travel itinerary strictly tailored to this user request: "${userInstruction}". Ensure exact count requested.` }] }],
-                        systemInstruction: { parts: [{ text: systemPrompt }] },
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        "day": { "type": "INTEGER" },
-                                        "time": { "type": "STRING" },
-                                        "title": { "type": "STRING" },
-                                        "lat": { "type": "NUMBER" },
-                                        "lng": { "type": "NUMBER" },
-                                        "notes": { "type": "STRING" }
-                                    },
-                                    "required": ["day", "time", "title", "lat", "lng", "notes"]
-                                }
-                            }
-                        }
-                    };
-
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}));
-                        throw new Error(errData.error?.message || `API Error ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (!jsonText) throw new Error("Empty response from Gemini.");
-
-                    const parsedData = JSON.parse(jsonText);
-                    return parsedData.map((item, index) => ({
-                        id: Date.now() + index,
-                        day: parseInt(item.day) || 1,
-                        time: item.time || "10:00",
-                        title: item.title || "Brunei Landmark",
-                        lat: parseFloat(item.lat) || 4.8894,
-                        lng: parseFloat(item.lng) || 114.9392,
-                        notes: item.notes || "",
-                        status: index === 0 ? "active" : "upcoming"
-                    }));
-
-                } catch (err) {
-                    lastError = err;
-                    console.warn(`Model ${model} failed, trying next...`, err);
-                }
-            }
-
-            throw lastError || new Error("Gemini API call failed.");
-        }
-
-        async function generateAIItinerary() {
-            const promptInput = document.getElementById('ai-custom-prompt').value.trim();
-            const keyInput = document.getElementById('gemini-api-key').value.trim();
-            const loadingBox = document.getElementById('ai-loading-box');
-            const btnGen = document.getElementById('btn-generate-ai');
-
-            if (!keyInput) {
-                showToast("Please enter a valid Google Gemini API Key!");
-                return;
-            }
-
-            localStorage.setItem('gemini_api_key', keyInput);
-            loadingBox.classList.remove('hidden');
-            btnGen.disabled = true;
-
-            try {
-                const generatedItems = await fetchGeminiItinerary(promptInput, keyInput);
-                
-                itineraryData = generatedItems;
-                selectedDay = 1;
-                
-                renderDayTabs();
-                renderDatePicker();
-                renderItinerary();
-                updateMapMarkers();
-                saveToCloud(itineraryData);
-
-                document.getElementById('ai-modal').classList.add('hidden');
-                const daysCount = new Set(generatedItems.map(i => i.day)).size;
-                showToast(`✨ Generated ${generatedItems.length} place(s) across ${daysCount} day(s)!`);
-            } catch (err) {
-                console.error("AI Generation failed:", err);
-                showToast(`API Error: ${err.message}`);
-            } finally {
-                loadingBox.classList.add('hidden');
-                btnGen.disabled = false;
-            }
-        }
-
-        function renderDayTabs() {
-            const container = document.getElementById('day-tabs-container');
-            if (!container) return;
-
-            const daysSet = new Set(itineraryData.map(i => i.day));
-            if (daysSet.size === 0) daysSet.add(1);
-
-            const sortedDays = Array.from(daysSet).sort((a, b) => a - b);
-            const dayNames = ['Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday'];
-
-            container.innerHTML = sortedDays.map(d => {
-                const isActive = d === selectedDay;
-                const countOnDay = itineraryData.filter(i => i.day === d).length;
-                const dateNum = 8 + (d - 1);
-                const dayName = dayNames[(d - 1) % dayNames.length];
-
-                return `
-                    <button class="day-tab text-sm font-semibold py-2 px-4 whitespace-nowrap ${
-                        isActive ? 'border-b-2 border-[#98C2B5] text-[#98C2B5]' : 'text-gray-400 border-b-2 border-transparent'
-                    }" onclick="window.switchDay(${d})">
-                        Day ${d} (${countOnDay}) <span class="text-[10px] font-normal block ${isActive ? 'text-gray-500' : 'text-gray-400'}">${dateNum} Aug, ${dayName}</span>
-                    </button>
-                `;
-            }).join('');
-        }
-
-        window.switchDay = function(day) {
-            selectedDay = day;
-            selectedDate = 8 + (day - 1);
+        window.addEventListener('DOMContentLoaded', () => {
+            initTimePickerOptions();
+            initMainMap();
             renderDatePicker();
-            renderDayTabs();
             renderItinerary();
-            updateMapMarkers();
-        };
+            setupEventListeners();
+            initCloudSync();
+            updateShareLinkInput();
 
-        function renderDatePicker() {
-            const dateRow = document.getElementById('date-picker-row');
-            const dates = [
-                { dayName: 'Wed', dateNum: 8, month: 'Aug' },
-                { dayName: 'Thu', dateNum: 9, month: 'Aug' },
-                { dayName: 'Fri', dateNum: 10, month: 'Aug' },
-                { dayName: 'Sat', dateNum: 11, month: 'Aug' },
-                { dayName: 'Sun', dateNum: 12, month: 'Aug' }
-            ];
+            // Load saved Gemini key from localStorage
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                const keyInput = document.getElementById('gemini-api-key');
+                if (keyInput) keyInput.value = savedKey;
+            }
 
-            dateRow.innerHTML = dates.map(d => {
-                const isActive = d.dateNum === selectedDate;
-                return `
-                    <div class="flex-shrink-0 w-[62px] h-[71px] rounded-xl flex flex-col items-center justify-between py-1.5 border transition-all cursor-pointer ${
-                        isActive ? 'bg-[#F7CD4F] border-[#FFC003] text-gray-900 shadow-sm font-bold' : 'bg-[#E8E6E6] border-black/10 text-gray-600'
-                    }" onclick="window.selectDate(${d.dateNum})">
-                        <span class="text-[8px] uppercase">${d.dayName}</span>
-                        <span class="text-2xl font-bold leading-none">${d.dateNum}</span>
-                        <span class="text-[8px] uppercase">${d.month}</span>
-                    </div>
-                `;
-            }).join('');
+            window.addEventListener('hashchange', () => {
+                const newId = getOrInitTripId();
+                if (newId !== currentTripId) {
+                    currentTripId = newId;
+                    if (unsubscribeFirestore) unsubscribeFirestore();
+                    initCloudSync();
+                    updateShareLinkInput();
+                }
+            });
+        });
+
+        function initTimePickerOptions() {
+            const hourSelect = document.getElementById('input-time-hour');
+            const minuteSelect = document.getElementById('input-time-minute');
+
+            let hourHtml = '';
+            for (let h = 1; h <= 12; h++) {
+                const val = h < 10 ? `0${h}` : `${h}`;
+                hourHtml += `<option value="${val}">${val}</option>`;
+            }
+            hourSelect.innerHTML = hourHtml;
+
+            let minuteHtml = '';
+            for (let m = 0; m < 60; m += 5) {
+                const val = m < 10 ? `0${m}` : `${m}`;
+                minuteHtml += `<option value="${val}">${val}</option>`;
+            }
+            minuteSelect.innerHTML = minuteHtml;
+
+            hourSelect.value = "11";
+            minuteSelect.value = "30";
+            document.getElementById('input-time-ampm').value = "AM";
         }
 
-        window.selectDate = function(dateNum) {
-            selectedDate = dateNum;
-            selectedDay = dateNum >= 8 ? (dateNum - 8 + 1) : 1;
-            renderDatePicker();
-            renderDayTabs();
-            renderItinerary();
+        function initMainMap() {
+            mainMap = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([4.8950, 114.9380], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
+
             updateMapMarkers();
-        };
+        }
+
+        function initModalMap() {
+            if (modalMap) return;
+            
+            modalMap = L.map('modal-map-preview', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([4.8894, 114.9392], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMap);
+
+            modalMap.on('click', (e) => {
+                const lat = e.latlng.lat.toFixed(4);
+                const lng = e.latlng.lng.toFixed(4);
+                document.getElementById('input-lat').value = lat;
+                document.getElementById('input-lng').value = lng;
+                updateLivePreviewMarker(lat, lng);
+            });
+        }
+
+        function updateLivePreviewMarker(lat, lng) {
+            if (!modalMap) return;
+            const parsedLat = parseFloat(lat);
+            const parsedLng = parseFloat(lng);
+
+            if (isNaN(parsedLat) || isNaN(parsedLng)) return;
+
+            const latlng = [parsedLat, parsedLng];
+
+            if (livePreviewMarker) {
+                livePreviewMarker.setLatLng(latlng);
+            } else {
+                livePreviewMarker = L.marker(latlng).addTo(modalMap);
+            }
+
+            modalMap.setView(latlng, 14);
+        }
 
         function updateMapMarkers() {
-            if (!mainMap) return;
-
             mapMarkers.forEach(m => mainMap.removeLayer(m));
             mapMarkers = [];
             if (mapPolyline) mainMap.removeLayer(mapPolyline);
@@ -702,7 +892,12 @@ STRICT RULE FOR QUANTITY & DAYS:
             });
 
             if (latLngs.length > 1) {
-                mapPolyline = L.polyline(latLngs, { color: '#ED9D04', weight: 3, dashArray: '5, 8', opacity: 0.8 }).addTo(mainMap);
+                mapPolyline = L.polyline(latLngs, {
+                    color: '#ED9D04',
+                    weight: 3,
+                    dashArray: '5, 8',
+                    opacity: 0.8
+                }).addTo(mainMap);
             }
 
             if (latLngs.length > 0) {
@@ -710,6 +905,53 @@ STRICT RULE FOR QUANTITY & DAYS:
                 mainMap.fitBounds(bounds, { padding: [30, 30] });
             }
         }
+
+        function renderDatePicker() {
+            const dateRow = document.getElementById('date-picker-row');
+            const dates = [
+                { dayName: 'Monday', dateNum: 6, month: 'August' },
+                { dayName: 'Tuesday', dateNum: 7, month: 'August' },
+                { dayName: 'Wednesday', dateNum: 8, month: 'August' },
+                { dayName: 'Thursday', dateNum: 9, month: 'August' },
+                { dayName: 'Friday', dateNum: 10, month: 'August' },
+                { dayName: 'Saturday', dateNum: 11, month: 'August' },
+            ];
+
+            dateRow.innerHTML = dates.map(d => {
+                const isActive = d.dateNum === selectedDate;
+                return `
+                    <div class="flex-shrink-0 w-[62px] h-[71px] rounded-xl flex flex-col items-center justify-between py-1.5 border transition-all cursor-pointer ${
+                        isActive 
+                        ? 'bg-[#F7CD4F] border-[#FFC003] text-gray-900 shadow-sm font-bold' 
+                        : 'bg-[#E8E6E6] border-black/10 text-gray-600'
+                    }" onclick="window.selectDate(${d.dateNum})">
+                        <span class="text-[8px] uppercase tracking-wider">${d.dayName}</span>
+                        <span class="text-2xl font-bold leading-none">${d.dateNum}</span>
+                        <span class="text-[8px] uppercase tracking-wider">${d.month}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.selectDate = function(dateNum) {
+            selectedDate = dateNum;
+            selectedDay = dateNum === 8 ? 1 : (dateNum === 9 ? 2 : 1);
+            
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                const tabDay = parseInt(tab.dataset.day);
+                if (tabDay === selectedDay) {
+                    tab.classList.add('border-[#98C2B5]', 'text-[#98C2B5]');
+                    tab.classList.remove('border-transparent', 'text-gray-400');
+                } else {
+                    tab.classList.remove('border-[#98C2B5]', 'text-[#98C2B5]');
+                    tab.classList.add('border-transparent', 'text-gray-400');
+                }
+            });
+
+            renderDatePicker();
+            renderItinerary();
+            updateMapMarkers();
+        };
 
         function renderItinerary() {
             const listContainer = document.getElementById('itinerary-list');
@@ -719,31 +961,61 @@ STRICT RULE FOR QUANTITY & DAYS:
                 listContainer.innerHTML = `
                     <div class="text-center py-10 text-gray-400">
                         <i class="fa-solid fa-map-location-dot text-4xl mb-2"></i>
-                        <p class="text-sm">No plans for Day ${selectedDay} yet.</p>
-                    </div>`;
+                        <p class="text-sm">No plans for this day yet.</p>
+                        <p class="text-xs text-gray-400">Click + button or Gemini Generator to add places!</p>
+                    </div>
+                `;
                 return;
             }
 
-            listContainer.innerHTML = currentItems.map((item, index) => `
-                <div class="relative flex gap-4 mb-5 cursor-pointer group" onclick="window.panToLocation(${item.lat}, ${item.lng})">
-                    <div class="relative flex flex-col items-center">
-                        <div class="w-3.5 h-3.5 rounded-full bg-[#ED9D04] z-10 border-2 border-white shadow-sm"></div>
-                        ${index !== currentItems.length - 1 ? '<div class="timeline-line"></div>' : ''}
-                    </div>
-                    <div class="flex-1 -mt-1">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-sm font-semibold text-gray-900">${formatEnglishTime(item.time)}</span>
-                                <h4 class="text-base font-bold text-gray-900 leading-snug">${item.title}</h4>
-                            </div>
-                            <button onclick="event.stopPropagation(); window.deletePlan(${item.id})" class="text-gray-300 hover:text-red-500 p-1">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
+            listContainer.innerHTML = currentItems.map((item, index) => {
+                const isLast = index === currentItems.length - 1;
+                
+                let dotColor = "bg-[#E8E6E6]";
+                let lineColor = false;
+                let activeCardStyle = "";
+
+                if (item.status === 'completed') {
+                    dotColor = "bg-gray-400";
+                } else if (item.status === 'active') {
+                    dotColor = "bg-[#ED9D04]";
+                    lineColor = true;
+                    activeCardStyle = "border border-amber-300 bg-white shadow-sm p-3 rounded-2xl";
+                } else {
+                    dotColor = "bg-[#ED9D04]";
+                }
+
+                return `
+                    <div class="relative flex gap-4 mb-5 cursor-pointer group" onclick="window.panToLocation(${item.lat}, ${item.lng})">
+                        <!-- Timeline Column -->
+                        <div class="relative flex flex-col items-center">
+                            <div class="w-3.5 h-3.5 rounded-full ${dotColor} z-10 border-2 border-white shadow-sm"></div>
+                            ${!isLast ? `<div class="timeline-line ${lineColor ? 'active' : ''}"></div>` : ''}
                         </div>
-                        ${item.notes ? `<p class="text-xs text-gray-500 mt-1">${item.notes}</p>` : ''}
+
+                        <!-- Content Column -->
+                        <div class="flex-1 -mt-1 ${activeCardStyle}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-sm font-semibold text-gray-900">${formatEnglishTime(item.time)}</span>
+                                    <h4 class="text-base font-bold text-gray-900 leading-snug">${item.title}</h4>
+                                </div>
+                                <button onclick="event.stopPropagation(); window.deletePlan(${item.id})" class="text-gray-300 hover:text-red-500 p-1 transition-colors">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+
+                            ${item.notes ? `
+                                <p class="text-xs text-gray-500 mt-1 whitespace-pre-line">${item.notes}</p>
+                            ` : ''}
+
+                            ${item.status === 'active' ? `
+                                <span class="inline-block text-[11px] font-medium text-amber-600 mt-2 bg-amber-50 px-2 py-0.5 rounded-md">Next coming up</span>
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         window.panToLocation = function(lat, lng) {
@@ -752,7 +1024,6 @@ STRICT RULE FOR QUANTITY & DAYS:
 
         window.deletePlan = function(id) {
             itineraryData = itineraryData.filter(item => item.id !== id);
-            renderDayTabs();
             renderItinerary();
             updateMapMarkers();
             saveToCloud(itineraryData);
@@ -762,9 +1033,25 @@ STRICT RULE FOR QUANTITY & DAYS:
             const input = document.getElementById('share-link-input');
             if (input) {
                 input.select();
-                document.execCommand('copy');
-                showToast("Copied share link to clipboard!");
+                try {
+                    document.execCommand('copy');
+                    showToast("Share link copied to clipboard!");
+                } catch (e) {
+                    showToast("Failed to copy link.");
+                }
             }
+        };
+
+        window.createNewTrip = function() {
+            const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
+            window.location.hash = `trip=${newTripId}`;
+            currentTripId = newTripId;
+            itineraryData = [];
+            renderItinerary();
+            updateMapMarkers();
+            saveToCloud([]);
+            document.getElementById('share-modal').classList.add('hidden');
+            showToast("New trip created! Share link updated.");
         };
 
         function showToast(text) {
@@ -773,45 +1060,68 @@ STRICT RULE FOR QUANTITY & DAYS:
             if (toast && toastText) {
                 toastText.innerText = text;
                 toast.classList.remove('opacity-0', 'pointer-events-none');
-                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 2500);
             }
-        }
-
-        function initMainMap() {
-            mainMap = L.map('map', { zoomControl: false, attributionControl: false }).setView([4.8950, 114.9380], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
-            updateMapMarkers();
-        }
-
-        function initTimePickerOptions() {
-            const hourSelect = document.getElementById('input-time-hour');
-            const minuteSelect = document.getElementById('input-time-minute');
-            if (!hourSelect || !minuteSelect) return;
-
-            let hourHtml = '';
-            for (let h = 1; h <= 12; h++) {
-                const val = h < 10 ? `0${h}` : `${h}`;
-                hourHtml += `<option value="${val}">${val}</option>`;
-            }
-            hourSelect.innerHTML = hourHtml;
-
-            let minuteHtml = '';
-            for (let m = 0; m < 60; m += 5) {
-                const val = m < 10 ? `0${m}` : `${m}`;
-                minuteHtml += `<option value="${val}">${val}</option>`;
-            }
-            minuteSelect.innerHTML = minuteHtml;
         }
 
         function setupEventListeners() {
-            const aiModal = document.getElementById('ai-modal');
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const day = parseInt(e.currentTarget.dataset.day);
+                    selectedDay = day;
+                    selectedDate = day === 1 ? 8 : 9;
+
+                    document.querySelectorAll('.day-tab').forEach(t => {
+                        t.classList.remove('border-[#98C2B5]', 'text-[#98C2B5]');
+                        t.classList.add('border-transparent', 'text-gray-400');
+                    });
+                    e.currentTarget.classList.add('border-[#98C2B5]', 'text-[#98C2B5]');
+
+                    renderDatePicker();
+                    renderItinerary();
+                    updateMapMarkers();
+                });
+            });
+
             const modal = document.getElementById('add-modal');
             const shareModal = document.getElementById('share-modal');
+            const aiModal = document.getElementById('ai-modal');
+            const btnAdd = document.getElementById('add-plan-form');
+
+            document.getElementById('btn-add-plan').addEventListener('click', () => {
+                editingId = null;
+                document.getElementById('modal-title-text').innerText = "Add Place to Plan";
+                btnAdd.reset();
+                document.getElementById('input-time-hour').value = "11";
+                document.getElementById('input-time-minute').value = "30";
+                document.getElementById('input-time-ampm').value = "AM";
+                modal.classList.remove('hidden');
+
+                setTimeout(() => {
+                    initModalMap();
+                    modalMap.invalidateSize();
+                    updateLivePreviewMarker(4.8894, 114.9392);
+                }, 200);
+            });
 
             document.getElementById('btn-open-ai-top').addEventListener('click', () => aiModal.classList.remove('hidden'));
             document.getElementById('btn-nav-ai').addEventListener('click', () => aiModal.classList.remove('hidden'));
             document.getElementById('btn-close-ai-modal').addEventListener('click', () => aiModal.classList.add('hidden'));
             document.getElementById('btn-cancel-ai').addEventListener('click', () => aiModal.classList.add('hidden'));
+
+            document.querySelectorAll('.ai-preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.ai-preset-btn').forEach(b => {
+                        b.classList.remove('ring-2', 'ring-amber-500', 'bg-amber-100');
+                    });
+                    const target = e.currentTarget;
+                    target.classList.add('ring-2', 'ring-amber-500', 'bg-amber-100');
+                    selectedAIPreset = target.dataset.preset;
+                });
+            });
+
             document.getElementById('btn-generate-ai').addEventListener('click', generateAIItinerary);
 
             document.getElementById('btn-share-itinerary').addEventListener('click', () => {
@@ -819,31 +1129,145 @@ STRICT RULE FOR QUANTITY & DAYS:
                 shareModal.classList.remove('hidden');
             });
 
-            document.getElementById('btn-close-share-modal').addEventListener('click', () => shareModal.classList.add('hidden'));
             document.getElementById('btn-close-modal').addEventListener('click', () => modal.classList.add('hidden'));
             document.getElementById('btn-cancel').addEventListener('click', () => modal.classList.add('hidden'));
+            document.getElementById('btn-close-share-modal').addEventListener('click', () => shareModal.classList.add('hidden'));
 
-            document.getElementById('btn-add-plan').addEventListener('click', () => {
-                document.getElementById('add-plan-form').reset();
-                modal.classList.remove('hidden');
+            const latInput = document.getElementById('input-lat');
+            const lngInput = document.getElementById('input-lng');
+
+            ['input', 'change'].forEach(eventType => {
+                latInput.addEventListener(eventType, () => updateLivePreviewMarker(latInput.value, lngInput.value));
+                lngInput.addEventListener(eventType, () => updateLivePreviewMarker(latInput.value, lngInput.value));
+            });
+
+            let geocodeTimeout = null;
+            const inputTitle = document.getElementById('input-title');
+            const btnSearchLoc = document.getElementById('btn-search-location');
+            const dropdown = document.getElementById('search-results-dropdown');
+
+            async function searchLocation(query, autoApply = false) {
+                if (!query || query.trim().length < 2) {
+                    dropdown.classList.add('hidden');
+                    return;
+                }
+
+                btnSearchLoc.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+
+                try {
+                    const searchQuery = query.toLowerCase().includes('brunei') ? query : `${query}, Brunei`;
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&accept-language=en&q=${encodeURIComponent(searchQuery)}&limit=5`);
+                    const data = await res.json();
+
+                    btnSearchLoc.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Find`;
+
+                    if (data && data.length > 0) {
+                        dropdown.innerHTML = data.map(item => `
+                            <div class="p-2 hover:bg-amber-50 cursor-pointer border-b border-gray-100 last:border-none font-medium text-gray-800 flex items-start gap-2 search-item" 
+                                 data-lat="${item.lat}" data-lng="${item.lon}" data-name="${item.display_name.split(',')[0]}">
+                                <i class="fa-solid fa-location-dot text-amber-500 mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <div class="font-semibold text-gray-900">${item.display_name.split(',')[0]}</div>
+                                    <div class="text-[10px] text-gray-500 line-clamp-1">${item.display_name}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                        dropdown.classList.remove('hidden');
+
+                        if (autoApply) {
+                            const top = data[0];
+                            applyLocationSelection(top.lat, top.lon);
+                        }
+                    } else {
+                        dropdown.innerHTML = `<div class="p-2 text-gray-400 text-center">No results found in Brunei. Try another keyword.</div>`;
+                        dropdown.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error('Geocoding error:', err);
+                    btnSearchLoc.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Find`;
+                }
+            }
+
+            function applyLocationSelection(lat, lng) {
+                const formattedLat = parseFloat(lat).toFixed(4);
+                const formattedLng = parseFloat(lng).toFixed(4);
+                
+                latInput.value = formattedLat;
+                lngInput.value = formattedLng;
+                updateLivePreviewMarker(formattedLat, formattedLng);
+            }
+
+            btnSearchLoc.addEventListener('click', () => searchLocation(inputTitle.value, true));
+
+            inputTitle.addEventListener('input', (e) => {
+                clearTimeout(geocodeTimeout);
+                geocodeTimeout = setTimeout(() => searchLocation(e.target.value, true), 600);
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const item = e.target.closest('.search-item');
+                if (item) {
+                    inputTitle.value = item.dataset.name;
+                    applyLocationSelection(item.dataset.lat, item.dataset.lng);
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!inputTitle.contains(e.target) && !dropdown.contains(e.target) && !btnSearchLoc.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('select-preset-location').addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val) {
+                    const [name, lat, lng] = val.split('|');
+                    document.getElementById('input-title').value = name;
+                    latInput.value = lat;
+                    lngInput.value = lng;
+                    updateLivePreviewMarker(lat, lng);
+                }
+            });
+
+            btnAdd.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const h = document.getElementById('input-time-hour').value;
+                const m = document.getElementById('input-time-minute').value;
+                const ampm = document.getElementById('input-time-ampm').value;
+
+                let hourNum = parseInt(h, 10);
+                if (ampm === 'PM' && hourNum < 12) hourNum += 12;
+                if (ampm === 'AM' && hourNum === 12) hourNum = 0;
+
+                const time = `${String(hourNum).padStart(2, '0')}:${m}`;
+                const title = document.getElementById('input-title').value;
+                const lat = parseFloat(document.getElementById('input-lat').value);
+                const lng = parseFloat(document.getElementById('input-lng').value);
+                const notes = document.getElementById('input-notes').value;
+
+                const newPlan = {
+                    id: Date.now(),
+                    day: selectedDay,
+                    time: time,
+                    title: title,
+                    lat: lat,
+                    lng: lng,
+                    notes: notes,
+                    status: 'upcoming'
+                };
+
+                itineraryData.push(newPlan);
+                itineraryData.sort((a, b) => a.time.localeCompare(b.time));
+
+                renderItinerary();
+                updateMapMarkers();
+                saveToCloud(itineraryData);
+
+                modal.classList.add('hidden');
             });
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initTimePickerOptions();
-            initMainMap();
-            renderDayTabs();
-            renderDatePicker();
-            renderItinerary();
-            setupEventListeners();
-            initCloudSync();
-
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) {
-                const keyInput = document.getElementById('gemini-api-key');
-                if (keyInput) keyInput.value = savedKey;
-            }
-        });
     </script>
 </body>
 </html>
