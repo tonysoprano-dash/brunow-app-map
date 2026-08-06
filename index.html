@@ -26,7 +26,7 @@
             min-height: 100vh;
         }
 
-        /* Mobile Device Container Styling matching Figma specs */
+        /* Mobile Device Container Styling */
         .app-container {
             width: 100%;
             max-width: 430px;
@@ -64,7 +64,7 @@
             margin-top: 8px;
         }
 
-        /* Hide Leaflet / OpenStreetMap attribution watermark */
+        /* Hide Leaflet attribution watermark for clean view */
         .leaflet-control-attribution {
             display: none !important;
         }
@@ -203,7 +203,7 @@
             </button>
             <div class="flex items-center gap-1.5">
                 <span class="text-lg font-semibold text-gray-800">Itinerary</span>
-                <div class="pulse-dot" title="Live Cloud Sync Active"></div>
+                <div class="pulse-dot" title="Live Sync Active"></div>
             </div>
             <!-- Share Link Button -->
             <button id="btn-share-itinerary" class="w-9 h-9 flex items-center justify-center text-gray-800 hover:bg-black/5 rounded-full transition-colors" title="Share Itinerary">
@@ -290,7 +290,7 @@
                     <h3 class="text-lg font-bold text-gray-900">Gemini AI Itinerary Generator</h3>
                 </div>
                 <p class="text-xs text-gray-600 mb-3">
-                    Gemini AI will automatically think and construct a custom JSON itinerary plotted directly onto your map!
+                    Gemini AI creates your customized itinerary based strictly on your requested plan count & preferences!
                 </p>
 
                 <!-- Gemini API Key Input -->
@@ -299,7 +299,7 @@
                         <i class="fa-solid fa-key text-amber-600"></i> Gemini API Key (Saved locally):
                     </label>
                     <input type="password" id="gemini-api-key" placeholder="AIzaSy..." class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono">
-                    <p class="text-[9px] text-amber-700 mt-1">Leave blank to use pre-configured preset fallback if no key is provided.</p>
+                    <p class="text-[9px] text-amber-700 mt-1">Leave blank to use environment default API Key.</p>
                 </div>
 
                 <!-- Travel Style Presets -->
@@ -343,14 +343,14 @@
                 <!-- Custom Prompt Input -->
                 <div class="mb-3">
                     <label class="block text-xs font-bold text-gray-700 mb-1">Or Describe Custom Preference:</label>
-                    <textarea id="ai-custom-prompt" rows="2" placeholder="e.g. 2-day relaxed family trip focused on parks, local cafes, and scenic sunset views" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none text-xs bg-gray-50"></textarea>
+                    <textarea id="ai-custom-prompt" rows="2" placeholder="e.g. Make 7 plans for Day 1 visiting local cafes, historic sites, and sunset views" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none text-xs bg-gray-50"></textarea>
                 </div>
 
                 <!-- Action Button & Loading Indicator -->
                 <div id="ai-loading-box" class="hidden my-3 text-center py-3 bg-amber-50 rounded-xl border border-amber-200">
                     <i class="fa-solid fa-brain text-amber-500 text-xl animate-bounce mb-1 block"></i>
-                    <span class="text-xs font-semibold text-amber-900 block">Gemini AI is thinking & calculating routes...</span>
-                    <span class="text-[10px] text-amber-700">Generating JSON payload & mapping locations</span>
+                    <span class="text-xs font-semibold text-amber-900 block">Gemini AI is generating your itinerary...</span>
+                    <span class="text-[10px] text-amber-700">Plotting coordinates & sequential schedule</span>
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -492,29 +492,28 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Firebase Configuration
+        // Firebase Configuration Setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'brunei-travel-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyFakeKeyForTestingOnly",
-                authDomain: "brunei-travel-app.firebaseapp.com",
-                projectId: "brunei-travel-app",
-                storageBucket: "brunei-travel-app.appspot.com",
-                messagingSenderId: "1234567890",
-                appId: "1:1234567890:web:1234567890"
-              };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const hasFirebaseConfig = typeof __firebase_config !== 'undefined';
+        
+        let app, auth, db;
+        if (hasFirebaseConfig) {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } catch (e) {
+                console.warn("Firebase initialization skipped:", e);
+            }
+        }
 
         let currentUser = null;
         let unsubscribeFirestore = null;
 
         // Default Itinerary Data
         const defaultItineraryData = [
-            { id: 1, day: 1, time: "08:30", title: "Mr Baker's Bakeshop", lat: 4.9135, lng: 114.9315, notes: "Enjoy breakfast and coffee", status: "completed" },
+            { id: 1, day: 1, time: "08:30", title: "Mr Baker's Bakeshop", lat: 4.9135, lng: 114.9315, notes: "Enjoy breakfast and fresh coffee", status: "completed" },
             { id: 2, day: 1, time: "10:00", title: "Tasek Lama Park", lat: 4.8988, lng: 114.9413, notes: "Hike for 20 minutes\nTake photo of waterfall", status: "active" },
             { id: 3, day: 1, time: "13:00", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Try traditional Ambuyat dish", status: "upcoming" },
             { id: 4, day: 1, time: "16:30", title: "Yayasan Sultan Complex", lat: 4.8880, lng: 114.9400, notes: "Shopping and sunset view over Golden Mosque", status: "upcoming" },
@@ -522,44 +521,9 @@
             { id: 6, day: 2, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Taste local street foods & satay", status: "upcoming" }
         ];
 
-        // Backup Presets if no Gemini Key or network error occurs
-        const aiPresets = {
-            cultural: [
-                { id: 101, day: 1, time: "08:30", title: "Royal Regalia Museum", lat: 4.8883, lng: 114.9408, notes: "Explore royal treasures, chariots & golden crowns", status: "upcoming" },
-                { id: 102, day: 1, time: "11:00", title: "Omar Ali Saifuddien Mosque", lat: 4.8894, lng: 114.9392, notes: "Marvel at pure gold domes & reflection lagoon", status: "upcoming" },
-                { id: 103, day: 1, time: "14:00", title: "Kampong Ayer Water Village", lat: 4.8833, lng: 114.9433, notes: "Take water taxi & visit traditional stilt house", status: "upcoming" },
-                { id: 104, day: 1, time: "17:30", title: "Jame' 'Asr Hassanil Bolkiah Mosque", lat: 4.9081, lng: 114.9228, notes: "Largest mosque in Brunei with 29 golden domes", status: "upcoming" },
-                { id: 105, day: 2, time: "09:30", title: "Malay Technology Museum", lat: 4.8802, lng: 114.9605, notes: "Discover ancient handicraft and boat building history", status: "upcoming" },
-                { id: 106, day: 2, time: "13:00", title: "Sultan Omar Ali Saifuddien Bridge", lat: 4.8722, lng: 115.0112, notes: "Scenic drive across SEA's longest sea-crossing bridge", status: "upcoming" }
-            ],
-            nature: [
-                { id: 201, day: 1, time: "07:30", title: "Tasek Lama Recreational Park", lat: 4.8988, lng: 114.9413, notes: "Morning jungle trek & natural waterfall photo stop", status: "upcoming" },
-                { id: 202, day: 1, time: "11:00", title: "Brunei River Mangrove Safari", lat: 4.8810, lng: 114.9450, notes: "Spot endangered Proboscis monkeys & wild crocodiles", status: "upcoming" },
-                { id: 203, day: 1, time: "16:00", title: "Bukit Shahbandar Forest Park", lat: 4.9350, lng: 114.8250, notes: "Challenge the 7-hills hike with panoramic ocean view", status: "upcoming" },
-                { id: 204, day: 2, time: "08:00", title: "Ulu Temburong National Park Tour", lat: 4.5422, lng: 115.1588, notes: "Canopy walk high above pristine rainforest canopy", status: "upcoming" },
-                { id: 205, day: 2, time: "17:00", title: "Muara Beach", lat: 5.0322, lng: 115.0688, notes: "Relaxing beach stroll & sunset listening to South China Sea waves", status: "upcoming" }
-            ],
-            foodie: [
-                { id: 301, day: 1, time: "08:30", title: "Chop Jing Chew Bakery", lat: 4.9030, lng: 114.9120, notes: "Famous classic Roti Kacang & Teh Tarik breakfast", status: "upcoming" },
-                { id: 302, day: 1, time: "12:30", title: "Aminah Arif Restaurant", lat: 4.8885, lng: 114.9380, notes: "Savor iconic Ambuyat sago starch dish with spicy dips", status: "upcoming" },
-                { id: 303, day: 1, time: "15:30", title: "Guan Hock Lee Gourmet Store", lat: 4.9100, lng: 114.9200, notes: "Sample local coffee beans & artisan snacks", status: "upcoming" },
-                { id: 304, day: 1, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Feast on B$1 satay, grilled fish, pulut panggang & fresh coconut", status: "upcoming" },
-                { id: 305, day: 2, time: "11:30", title: "Thiam Hock Restaurant", lat: 4.8912, lng: 114.9350, notes: "Famous local Brunei-Chinese roasted duck & seafood", status: "upcoming" },
-                { id: 306, day: 2, time: "17:00", title: "Kiapgeh Food Street", lat: 4.9220, lng: 114.9050, notes: "Taste traditional Malay kueh pastries & cold beverages", status: "upcoming" }
-            ],
-            luxury: [
-                { id: 401, day: 1, time: "10:00", title: "The Empire Brunei Resort", lat: 4.9667, lng: 114.8522, notes: "Check-in at 6-star coastal palace resort & pool lagoon", status: "upcoming" },
-                { id: 402, day: 1, time: "15:00", title: "Empire Country Club High Tea", lat: 4.9680, lng: 114.8530, notes: "Enjoy oceanview afternoon tea with luxury pastries", status: "upcoming" },
-                { id: 403, day: 1, time: "19:00", title: "Pantai Restaurant Seafood Dinner", lat: 4.9660, lng: 114.8510, notes: "Fine dining seaside dinner with fresh lobsters & wine alternatives", status: "upcoming" },
-                { id: 404, day: 2, time: "10:30", title: "Royal Brunei Golf & Country Club", lat: 4.9510, lng: 114.8350, notes: "18-hole championship golf course surrounded by jungle", status: "upcoming" },
-                { id: 405, day: 2, time: "16:00", title: "Jerudong Park Beach", lat: 4.9450, lng: 114.8320, notes: "Private sunset yacht charter along Brunei coastline", status: "upcoming" }
-            ]
-        };
-
         let itineraryData = [...defaultItineraryData];
         let selectedDay = 1;
         let selectedDate = 8;
-        let editingId = null;
         let selectedAIPreset = 'cultural';
         let currentTripId = getOrInitTripId();
 
@@ -569,20 +533,26 @@
         let livePreviewMarker = null;
 
         /**
-         * Real Google Gemini API Call with JSON Structured Output
+         * Fetch Gemini Itinerary using gemini-3-flash-preview endpoint
          */
         async function fetchGeminiItinerary(userInstruction, apiKey = "") {
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-            const systemPrompt = `You are a world-class travel planner for Brunei Darussalam. 
-Generate a realistic 2-day travel itinerary for a tourist visiting Brunei Darussalam based strictly on the user's prompt or preference.
+            const systemPrompt = `You are a world-class travel planner for Brunei Darussalam.
+Generate a realistic travel itinerary for a tourist visiting Brunei Darussalam based strictly on the user's prompt or preference.
+
+STRICT RULE FOR QUANTITY & DAYS:
+1. Follow all requested plan counts in the user prompt (e.g. if the user requests "7 plans", output an array containing EXACTLY 7 items).
+2. If the user prompt asks for N plans without specifying multiple days, place ALL plans under Day 1 with logical sequential times (from morning to evening).
+
+OUTPUT FORMAT:
 You MUST output a JSON array of objects. Each object represents a place or activity in the itinerary.
 Ensure real, accurate geographic coordinates in Brunei (latitude around 4.5 to 5.1, longitude around 114.5 to 115.1).
 Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2. Write concise titles and notes in English.`;
 
             const payload = {
                 contents: [
-                    { parts: [{ text: `Generate a 2-day Brunei travel itinerary tailored to this request: "${userInstruction}".}] }
+                    { parts: [{ text: `Generate a Brunei travel itinerary tailored to this request: "${userInstruction}".` }] }
                 ],
                 systemInstruction: {
                     parts: [{ text: systemPrompt }]
@@ -633,7 +603,7 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
                 id: Date.now() + idx,
                 day: parseInt(item.day) || 1,
                 time: item.time || "10:00",
-                title: item.title || "Brunei Spot",
+                title: item.title || "Brunei Landmark",
                 lat: typeof item.lat === 'number' && !isNaN(item.lat) ? item.lat : 4.8894,
                 lng: typeof item.lng === 'number' && !isNaN(item.lng) ? item.lng : 114.9392,
                 notes: item.notes || "",
@@ -641,7 +611,6 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
             }));
         }
 
-        // Gemini AI Generation Action Handler
         async function generateAIItinerary() {
             const loadingBox = document.getElementById('ai-loading-box');
             const btnGen = document.getElementById('btn-generate-ai');
@@ -661,7 +630,6 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
             btnGen.classList.add('opacity-50');
 
             try {
-                // Always call Gemini API (Runtime environment provides key automatically if empty)
                 const generatedItems = await fetchGeminiItinerary(promptToUse, apiKey);
                 if (generatedItems && generatedItems.length > 0) {
                     itineraryData = generatedItems;
@@ -671,9 +639,6 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
                     renderItinerary();
                     updateMapMarkers();
                     saveToCloud(itineraryData);
-                    showToast("✨ 제미나이가 요청하신 여행 일정을 지도에 반영했습니다!");
-                } else {
-                    throw new Error("Empty response array from Gemini.");
                 }
             } catch (err) {
                 console.error("Gemini API generation error:", err);
@@ -716,6 +681,7 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
         }
 
         async function initCloudSync() {
+            if (!hasFirebaseConfig || !auth) return;
             try {
                 const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 if (authToken) {
@@ -746,16 +712,16 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
                         saveToCloud(defaultItineraryData);
                     }
                 }, (error) => {
-                    console.error("Firestore error:", error);
+                    console.warn("Firestore subscription warn:", error);
                 });
 
             } catch (err) {
-                console.warn("Cloud sync fallback to local:", err);
+                console.warn("Cloud sync fallback to local mode:", err);
             }
         }
 
         async function saveToCloud(newItems) {
-            if (!currentUser) return;
+            if (!hasFirebaseConfig || !currentUser || !db) return;
             try {
                 const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
                 await setDoc(tripDocRef, {
@@ -763,40 +729,14 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
                     updatedAt: new Date().toISOString()
                 }, { merge: false });
             } catch (err) {
-                console.error("Failed to save to cloud:", err);
+                console.warn("Cloud save skipped:", err);
             }
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initTimePickerOptions();
-            initMainMap();
-            renderDatePicker();
-            renderItinerary();
-            setupEventListeners();
-            initCloudSync();
-            updateShareLinkInput();
-
-            // Load saved Gemini key from localStorage
-            const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) {
-                const keyInput = document.getElementById('gemini-api-key');
-                if (keyInput) keyInput.value = savedKey;
-            }
-
-            window.addEventListener('hashchange', () => {
-                const newId = getOrInitTripId();
-                if (newId !== currentTripId) {
-                    currentTripId = newId;
-                    if (unsubscribeFirestore) unsubscribeFirestore();
-                    initCloudSync();
-                    updateShareLinkInput();
-                }
-            });
-        });
 
         function initTimePickerOptions() {
             const hourSelect = document.getElementById('input-time-hour');
             const minuteSelect = document.getElementById('input-time-minute');
+            if (!hourSelect || !minuteSelect) return;
 
             let hourHtml = '';
             for (let h = 1; h <= 12; h++) {
@@ -818,6 +758,13 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
         }
 
         function initMainMap() {
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) return;
+
+            if (mainMap) {
+                mainMap.remove();
+            }
+
             mainMap = L.map('map', {
                 zoomControl: false,
                 attributionControl: false
@@ -825,12 +772,18 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
 
+            setTimeout(() => {
+                if (mainMap) mainMap.invalidateSize();
+            }, 100);
+
             updateMapMarkers();
         }
 
         function initModalMap() {
             if (modalMap) return;
-            
+            const previewContainer = document.getElementById('modal-map-preview');
+            if (!previewContainer) return;
+
             modalMap = L.map('modal-map-preview', {
                 zoomControl: false,
                 attributionControl: false
@@ -866,6 +819,7 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
         }
 
         function updateMapMarkers() {
+            if (!mainMap) return;
             mapMarkers.forEach(m => mainMap.removeLayer(m));
             mapMarkers = [];
             if (mapPolyline) mainMap.removeLayer(mapPolyline);
@@ -908,6 +862,8 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
 
         function renderDatePicker() {
             const dateRow = document.getElementById('date-picker-row');
+            if (!dateRow) return;
+
             const dates = [
                 { dayName: 'Monday', dateNum: 6, month: 'August' },
                 { dayName: 'Tuesday', dateNum: 7, month: 'August' },
@@ -955,6 +911,8 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
 
         function renderItinerary() {
             const listContainer = document.getElementById('itinerary-list');
+            if (!listContainer) return;
+
             const currentItems = itineraryData.filter(item => item.day === selectedDay);
 
             if (currentItems.length === 0) {
@@ -1019,7 +977,9 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
         }
 
         window.panToLocation = function(lat, lng) {
-            mainMap.flyTo([lat, lng], 15, { duration: 1.2 });
+            if (mainMap) {
+                mainMap.flyTo([lat, lng], 15, { duration: 1.2 });
+            }
         };
 
         window.deletePlan = function(id) {
@@ -1091,7 +1051,6 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
             const btnAdd = document.getElementById('add-plan-form');
 
             document.getElementById('btn-add-plan').addEventListener('click', () => {
-                editingId = null;
                 document.getElementById('modal-title-text').innerText = "Add Place to Plan";
                 btnAdd.reset();
                 document.getElementById('input-time-hour').value = "11";
@@ -1101,8 +1060,10 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
 
                 setTimeout(() => {
                     initModalMap();
-                    modalMap.invalidateSize();
-                    updateLivePreviewMarker(4.8894, 114.9392);
+                    if (modalMap) {
+                        modalMap.invalidateSize();
+                        updateLivePreviewMarker(4.8894, 114.9392);
+                    }
                 }, 200);
             });
 
@@ -1267,6 +1228,39 @@ Use 24-hour format for time (e.g. "08:30", "13:00"). Day must be integer 1 or 2.
 
                 modal.classList.add('hidden');
             });
+        }
+
+        function startApp() {
+            initTimePickerOptions();
+            initMainMap();
+            renderDatePicker();
+            renderItinerary();
+            setupEventListeners();
+            initCloudSync();
+            updateShareLinkInput();
+
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                const keyInput = document.getElementById('gemini-api-key');
+                if (keyInput) keyInput.value = savedKey;
+            }
+
+            window.addEventListener('hashchange', () => {
+                const newId = getOrInitTripId();
+                if (newId !== currentTripId) {
+                    currentTripId = newId;
+                    if (unsubscribeFirestore) unsubscribeFirestore();
+                    initCloudSync();
+                    updateShareLinkInput();
+                }
+            });
+        }
+
+        // Guarantees immediate launch even if DOMContentLoaded already fired in ES Module mode
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else {
+            startApp();
         }
     </script>
 </body>
