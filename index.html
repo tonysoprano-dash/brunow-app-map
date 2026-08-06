@@ -514,7 +514,7 @@
             { id: 6, day: 2, time: "18:00", title: "Gadong Night Market", lat: 4.9128, lng: 114.9256, notes: "Taste local street foods & satay", status: "upcoming" }
         ];
 
-        // Backup Presets Database if network is unavailable
+        // AI Presets Database for Automatic Generation
         const aiPresets = {
             cultural: [
                 { id: 101, day: 1, time: "08:30", title: "Royal Regalia Museum", lat: 4.8883, lng: 114.9408, notes: "Explore royal treasures, chariots & golden crowns", status: "upcoming" },
@@ -555,111 +555,78 @@
         let selectedAIPreset = 'cultural';
         let currentTripId = getOrInitTripId();
 
-        async function fetchGeminiItinerary(userInstruction) {
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+        // Leaflet Map Variables
+        let mainMap, modalMap;
+        let mapMarkers = [];
+        let mapPolyline = null;
+        let livePreviewMarker = null;
 
-            const systemPrompt = `You are a world-class travel planner for Brunei Darussalam. 
-Generate a realistic 2-day travel itinerary in Brunei based on the user's requested style or prompt.
-You MUST output a JSON list of objects. Each object represents a place/activity in the itinerary.
-Ensure coordinates (lat, lng) are accurate geographic coordinates in Brunei (latitude around 4.5 to 5.0, longitude around 114.8 to 115.1).
-Use 24-hour time format for time (HH:MM). Ensure day is integer 1 or 2. Write all titles and notes in clear English.`;
-
-            const payload = {
-                contents: [
-                    { parts: [{ text: `Generate a 2-day Brunei itinerary based on this preference: "${userInstruction}". Include 3 to 4 spots per day.` }] }
-                ],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "day": { "type": "INTEGER" },
-                                "time": { "type": "STRING", "description": "24h format HH:MM e.g. 09:30" },
-                                "title": { "type": "STRING" },
-                                "lat": { "type": "NUMBER" },
-                                "lng": { "type": "NUMBER" },
-                                "notes": { "type": "STRING" }
-                            },
-                            "propertyOrdering": ["day", "time", "title", "lat", "lng", "notes"]
-                        }
-                    }
-                }
-            };
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Gemini API error status ${response.status}`);
+        function getOrInitTripId() {
+            const hash = window.location.hash.replace('#', '');
+            const params = new URLSearchParams(hash);
+            if (params.has('trip') && params.get('trip').trim().length > 0) {
+                return params.get('trip').trim();
             }
-
-            const result = await response.json();
-            const rawJson = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!rawJson) {
-                throw new Error("No response text returned from Gemini API.");
-            }
-
-            const parsed = JSON.parse(rawJson);
-            return parsed.map((item, idx) => ({
-                id: Date.now() + idx,
-                day: item.day || 1,
-                time: item.time || "10:00",
-                title: item.title || "Brunei Landmark",
-                lat: typeof item.lat === 'number' ? item.lat : 4.8894,
-                lng: typeof item.lng === 'number' ? item.lng : 114.9392,
-                notes: item.notes || "",
-                status: idx === 0 ? "completed" : (idx === 1 ? "active" : "upcoming")
-            }));
+            const newTripId = 'brunei-' + Math.random().toString(36).substring(2, 9);
+            window.location.hash = `trip=${newTripId}`;
+            return newTripId;
         }
 
-        // Real Gemini AI Generation Handler
-        async function generateAIItinerary() {
-            const loadingBox = document.getElementById('ai-loading-box');
-            const btnGen = document.getElementById('btn-generate-ai');
-            const customPromptInput = document.getElementById('ai-custom-prompt');
+        function updateShareLinkInput() {
+            const shareUrl = window.location.href;
+            const input = document.getElementById('share-link-input');
+            if (input) input.value = shareUrl;
+        }
 
-            const customPrompt = customPromptInput ? customPromptInput.value.trim() : "";
-            const promptToUse = customPrompt !== "" ? customPrompt : `Travel style: ${selectedAIPreset} in Brunei`;
+        // Convert 24-hour time string ("13:00") to English AM/PM format ("1:00 PM")
+        function formatEnglishTime(timeStr) {
+            if (!timeStr) return '';
+            const [hStr, mStr] = timeStr.split(':');
+            let hours = parseInt(hStr, 10);
+            const minutes = mStr || '00';
+            if (isNaN(hours)) return timeStr;
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}:${minutes} ${ampm}`;
+        }
 
-            loadingBox.classList.remove('hidden');
-            btnGen.disabled = true;
-            btnGen.classList.add('opacity-50');
-
+        async function initCloudSync() {
             try {
-                // Real Gemini API Call
-                const generatedItems = await fetchGeminiItinerary(promptToUse);
-                
-                if (generatedItems && generatedItems.length > 0) {
-                    itineraryData = generatedItems;
-                    renderItinerary();
-                    updateMapMarkers();
-                    saveToCloud(itineraryData);
-                    showToast("✨ Gemini AI generated your live Brunei itinerary!");
+                const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (authToken) {
+                    const userCred = await signInWithCustomToken(auth, authToken);
+                    currentUser = userCred.user;
                 } else {
-                    throw new Error("Empty items array returned.");
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
                 }
+
+                if (!currentUser) return;
+
+                const tripDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', currentTripId);
+
+                if (unsubscribeFirestore) {
+                    unsubscribeFirestore();
+                }
+
+                unsubscribeFirestore = onSnapshot(tripDocRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        if (data && Array.isArray(data.items)) {
+                            itineraryData = data.items;
+                            renderItinerary();
+                            updateMapMarkers();
+                        }
+                    } else {
+                        saveToCloud(defaultItineraryData);
+                    }
+                }, (error) => {
+                    console.error("Firestore error:", error);
+                });
+
             } catch (err) {
-                console.warn("Gemini API call failed, using fallback preset:", err);
-                const fallbackItems = aiPresets[selectedAIPreset] || aiPresets.cultural;
-                itineraryData = JSON.parse(JSON.stringify(fallbackItems));
-                renderItinerary();
-                updateMapMarkers();
-                saveToCloud(itineraryData);
-                showToast("✨ Applied custom Brunei itinerary preset!");
-            } finally {
-                loadingBox.classList.add('hidden');
-                btnGen.disabled = false;
-                btnGen.classList.remove('opacity-50');
-                document.getElementById('ai-modal').classList.add('hidden');
+                console.warn("Cloud sync fallback to local:", err);
             }
         }
 
