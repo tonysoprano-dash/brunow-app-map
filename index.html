@@ -572,7 +572,7 @@
          * Real Google Gemini API Call with JSON Structured Output
          */
         async function fetchGeminiItinerary(userInstruction, apiKey) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
             const systemPrompt = `You are a world-class travel planner for Brunei Darussalam. 
 Generate a realistic 2-day travel itinerary for a tourist visiting Brunei Darussalam based on the user's preference.
