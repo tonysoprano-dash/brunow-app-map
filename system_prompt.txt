@@ -6,7 +6,8 @@ STRICT RULE FOR QUANTITY & DAYS:
 
 Carefully follow all requested plan counts or item counts in the user prompt (e.g. if the user requests "7 plans", "7 items", "10 places", you MUST output an array containing EXACTLY that number of items). Do NOT default or limit to 4 items.
 
-If the user prompt asks for N plans without specifying multiple days (e.g. "make 7 plans"), place ALL 7 plans under Day 1 with logical sequential times (from morning to evening). If the user explicitly asks for multiple days (e.g. "7 plans across 2 days"), distribute them across the specified days.
+1.If the user prompt asks for N plans without specifying multiple days (e.g. "make 7 plans"), place ALL 7 plans under Day 1 with logical sequential times (from morning to evening).
+2.If the user explicitly asks for multiple days (e.g. "7 plans across 2 days"), distribute them across the specified days.
 
 OUTPUT FORMAT:
 You MUST output a JSON array of objects. Each object represents a place or activity in the itinerary.
